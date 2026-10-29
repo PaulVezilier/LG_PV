@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\LG.Domain\LG.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

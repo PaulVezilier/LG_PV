@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/LG.Domain/LG.Domain.csproj" />
+    <Project Path="src/LG.Web/LG.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/LG.Domain.Tests/LG.Domain.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Loup-Garou</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>🐺 Loup-Garou</h1>
+    <div id="infos-partie"></div>
+    <button id="btn-quitter" class="secondaire" hidden>Quitter</button>
+  </header>
+
+  <main>
+    <!-- Écran d'accueil -->
+    <section id="ecran-accueil">
+      <div class="carte accueil">
+        <label>Pseudo
+          <input id="pseudo" maxlength="20" autocomplete="nickname">
+        </label>
+        <button id="btn-creer">Créer une partie</button>
+        <div class="separateur">ou</div>
+        <label>Code de la partie
+          <input id="code" maxlength="5" autocomplete="off">
+        </label>
+        <button id="btn-rejoindre">Rejoindre</button>
+      </div>
+    </section>
+
+    <!-- Écran de jeu -->
+    <section id="ecran-partie" hidden>
+      <aside class="carte">
+        <h2>Joueurs</h2>
+        <ul id="liste-joueurs"></ul>
+        <button id="btn-demarrer" hidden>Lancer la partie</button>
+      </aside>
+
+      <section class="carte colonne-centrale">
+        <div class="bandeau-phase">
+          <h2 id="titre-phase"></h2>
+          <span id="minuteur"></span>
+        </div>
+        <p id="etape"></p>
+        <ol id="journal"></ol>
+        <form id="form-chat">
+          <input id="message" maxlength="300" autocomplete="off">
+          <button>Envoyer</button>
+        </form>
+      </section>
+
+      <aside class="carte">
+        <h2>Mon rôle</h2>
+        <!-- Placeholder : à remplacer par l'illustration du rôle -->
+        <div id="illustration-role" class="placeholder">?</div>
+        <p id="nom-role"></p>
+        <p id="description-role" class="discret"></p>
+        <h3>Actions</h3>
+        <div id="actions"></div>
+      </aside>
+    </section>
+  </main>
+
+  <div id="erreur" hidden></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
