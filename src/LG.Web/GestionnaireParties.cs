@@ -7,6 +7,9 @@ namespace LG.Web;
 /// <summary>Jeton secret détenu par le navigateur, qui l'identifie comme un joueur d'une partie.</summary>
 public sealed record Session(string Jeton, string PartieId, string JoueurId);
 
+/// <summary>Ce que le salon public affiche d'une partie.</summary>
+public sealed record ResumePartie(string Id, string Hote, int NombreJoueurs, int JoueursMaximum, Phase Phase, int NumeroTour);
+
 /// <summary>Registre en mémoire des parties en cours et des sessions des joueurs.</summary>
 public sealed class GestionnaireParties(TimeProvider horloge)
 {
@@ -20,6 +23,23 @@ public sealed class GestionnaireParties(TimeProvider horloge)
     public Partie? Trouver(string partieId) => _parties.GetValueOrDefault(partieId);
 
     public Session? TrouverSession(string jeton) => _sessions.GetValueOrDefault(jeton);
+
+    /// <summary>Parties visibles dans le salon : en attente d'abord, puis en cours. Les parties terminées n'y figurent pas.</summary>
+    public IReadOnlyList<ResumePartie> Resumes()
+    {
+        var resumes = new List<ResumePartie>();
+        foreach (var partie in _parties.Values)
+        {
+            lock (partie)
+            {
+                if (partie.Phase == Phase.Terminee || partie.Joueurs.Count == 0)
+                    continue;
+                var hote = partie.Joueurs.FirstOrDefault(j => j.Id == partie.HoteId)?.Nom ?? "";
+                resumes.Add(new ResumePartie(partie.Id, hote, partie.Joueurs.Count, partie.Parametres.JoueursMaximum, partie.Phase, partie.NumeroTour));
+            }
+        }
+        return resumes.OrderBy(r => r.Phase != Phase.Lobby).ThenBy(r => r.Id).ToList();
+    }
 
     public Session CreerPartie(string nomHote)
     {
@@ -40,6 +60,19 @@ public sealed class GestionnaireParties(TimeProvider horloge)
         lock (partie)
             joueur = partie.AjouterJoueur(nom);
         return OuvrirSession(partie, joueur);
+    }
+
+    /// <summary>Retire le joueur d'une partie pas encore lancée ; une partie vide est supprimée.</summary>
+    public void QuitterPartie(Session session)
+    {
+        var partie = Trouver(session.PartieId) ?? throw new ActionInvalideException("Partie introuvable.");
+        lock (partie)
+        {
+            partie.RetirerJoueur(session.JoueurId);
+            if (partie.Joueurs.Count == 0)
+                _parties.TryRemove(partie.Id, out _);
+        }
+        _sessions.TryRemove(session.Jeton, out _);
     }
 
     private Session OuvrirSession(Partie partie, Joueur joueur)

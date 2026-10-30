@@ -4,7 +4,9 @@ namespace LG.Domain.Nuit;
 
 internal sealed class EtapeVoyante : EtapeNuit
 {
-    public override string Nom => "Voyante : choisissez le joueur dont vous voulez voir le rôle";
+    public override string Narration => "La Voyante sonde un joueur";
+
+    public override string Consigne => "Cliquez sur le joueur dont vous voulez voir le rôle";
 
     public override IEnumerable<Joueur> Acteurs(Partie partie) => partie.Vivants.Where(j => j.Role is Voyante);
 
@@ -17,7 +19,7 @@ internal sealed class EtapeVoyante : EtapeNuit
 
     public override void Executer(Partie partie, Joueur joueur, ActionType action, Joueur? cible)
     {
-        partie.JournaliserPrive(joueur, $"🔮 {cible!.Nom} est {cible.Role!.Nom}.");
+        partie.JournaliserPrive(joueur, $"🔮 {cible!.Nom} est {cible.Role!.NomVuParVoyante}.");
         MarquerTermine(partie, joueur);
     }
 }

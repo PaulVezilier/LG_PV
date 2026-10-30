@@ -4,3 +4,6 @@ obj/
 .idea/
 *.user
 TestResults/
+node_modules/
+# Généré par `npm run build` dans src/LG.Client
+src/LG.Web/wwwroot/

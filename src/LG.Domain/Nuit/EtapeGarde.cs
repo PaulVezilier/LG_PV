@@ -4,7 +4,9 @@ namespace LG.Domain.Nuit;
 
 internal sealed class EtapeGarde : EtapeNuit
 {
-    public override string Nom => "Garde : choisissez qui protéger cette nuit";
+    public override string Narration => "Le Garde doit protéger quelqu'un";
+
+    public override string Consigne => "Cliquez sur le joueur à protéger cette nuit";
 
     public override IEnumerable<Joueur> Acteurs(Partie partie) => partie.Vivants.Where(j => j.Role is Garde);
 

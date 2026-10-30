@@ -3,6 +3,7 @@ namespace LG.Domain.Nuit;
 /// <summary>Ce qui s'est décidé pendant la nuit en cours ; résolu à l'aube par <see cref="Partie"/>.</summary>
 internal sealed class EtatNuit
 {
+    public Joueur? PremierAmoureux { get; set; }
     public Joueur? Protege { get; set; }
     public Dictionary<string, string> VotesLoups { get; } = [];
     public Joueur? VictimeLoups { get; set; }

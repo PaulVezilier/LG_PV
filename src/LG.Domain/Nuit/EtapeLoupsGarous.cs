@@ -3,7 +3,9 @@ namespace LG.Domain.Nuit;
 /// <summary>Tous les joueurs du camp des loups (infectés compris) votent pour une victime.</summary>
 internal sealed class EtapeLoupsGarous : EtapeNuit
 {
-    public override string Nom => "Loups-Garous : choisissez votre victime";
+    public override string Narration => "Les loups-garous choisissent leur victime";
+
+    public override string Consigne => "Cliquez sur la victime de la meute";
 
     public override IEnumerable<Joueur> Acteurs(Partie partie) => partie.Vivants.Where(j => j.EstLoup);
 

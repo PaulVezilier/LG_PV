@@ -1,3 +1,5 @@
+using LG.Domain.Roles;
+
 namespace LG.Domain;
 
 /// <summary>Une ligne du journal de la partie : message du narrateur ou message de chat (Auteur renseigné).</summary>
@@ -7,14 +9,16 @@ public sealed record EvenementJournal(
     Canal Canal,
     string Texte,
     string? Auteur,
-    IReadOnlyCollection<string> Destinataires)
+    IReadOnlyCollection<string> Destinataires,
+    bool Nocturne)
 {
     /// <summary>Tout devient visible une fois la partie terminée.</summary>
     public bool EstVisiblePar(Joueur joueur, Phase phase) => phase == Phase.Terminee || Canal switch
     {
         Canal.Public => true,
         Canal.Loups => joueur.EstLoup,
-        Canal.Morts => !joueur.EstVivant,
+        // Le Croque-Mort entend les morts, mais seulement la nuit.
+        Canal.Morts => !joueur.EstVivant || Nocturne && joueur.Role is CroqueMort,
         Canal.Prive => Destinataires.Contains(joueur.Id),
         _ => false,
     };

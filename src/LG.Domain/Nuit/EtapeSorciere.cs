@@ -4,7 +4,9 @@ namespace LG.Domain.Nuit;
 
 internal sealed class EtapeSorciere : EtapeNuit
 {
-    public override string Nom => "Sorcière : utilisez vos potions";
+    public override string Narration => "La Sorcière prépare ses potions";
+
+    public override string Consigne => "Utilisez vos potions, ou cliquez sur un joueur à empoisonner";
 
     public override IEnumerable<Joueur> Acteurs(Partie partie) => partie.Vivants.Where(j => j.Role is Sorciere { ADesPotions: true });
 

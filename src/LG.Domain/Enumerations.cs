@@ -5,17 +5,31 @@ public enum Camp
 {
     Village,
     LoupsGarous,
+
+    /// <summary>Couple formé par Cupidon entre deux camps opposés : il gagne s'il est le dernier en vie.</summary>
+    Amoureux,
 }
 
-/// <summary>Identifiant de chaque rôle existant (utilisé pour les compositions de partie).</summary>
+/// <summary>Identifiant de chaque rôle existant (utilisé pour les compositions de partie). L'ordre sert à l'affichage.</summary>
 public enum RoleId
 {
     SimpleVillageois,
+    Voyante,
+    Sorciere,
+    Garde,
+    Chasseur,
+    Cupidon,
+    Dictateur,
+    Heritier,
+    ChaperonRouge,
+    CroqueMort,
+    Veteran,
     LoupGarou,
     LoupGarouNoir,
-    Sorciere,
-    Voyante,
-    Garde,
+    LoupBavard,
+    LoupVengeur,
+    LoupPerfide,
+    LoupAmnesique,
 }
 
 /// <summary>Grandes phases d'une partie.</summary>
@@ -24,6 +38,10 @@ public enum Phase
     Lobby,
     Nuit,
     Jour,
+
+    /// <summary>Des joueurs qui viennent de mourir utilisent leur pouvoir (Chasseur, Croque-Mort...).</summary>
+    DernieresVolontes,
+
     Terminee,
 }
 
@@ -36,6 +54,11 @@ public enum ActionType
     Infecter,
     Soigner,
     Empoisonner,
+    Unir,
+    Heriter,
+    CoupDEtat,
+    Tirer,
+    Designer,
     Passer,
 }
 

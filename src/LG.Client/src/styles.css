@@ -1,0 +1,454 @@
+/* Charte « Le Grimoire » : occulte, élégante, immersive et lisible. */
+:root {
+  --noir: #111917;
+  --petrole: #1d302b;
+  --petrole-clair: #284039;
+  --or: #d1b17a;
+  --or-pale: rgba(209, 177, 122, 0.14);
+  --ivoire: #f0e5cf;
+  --ivoire-doux: rgba(240, 229, 207, 0.62);
+  --bordeaux: #793d43;
+  --bordeaux-clair: #c4737b;
+  --morts: #a99bb5;
+  --ligne: rgba(209, 177, 122, 0.22);
+
+  --titre: "Cinzel", Georgia, serif;
+  --texte: "Inter", system-ui, sans-serif;
+  --rayon: 10px;
+
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #racine { height: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--texte);
+  font-size: 15px;
+  color: var(--ivoire);
+  background: radial-gradient(ellipse at 50% 30%, var(--petrole) 0%, var(--noir) 70%) fixed var(--noir);
+}
+
+h1, h2, h3 { font-family: var(--titre); font-weight: 700; color: var(--or); margin: 0; letter-spacing: 0.02em; }
+.discret { color: var(--ivoire-doux); font-size: 0.9rem; }
+.code { font-family: var(--titre); color: var(--or); letter-spacing: 0.12em; }
+
+/* ------------------------------------------------------------ Contrôles */
+
+input {
+  font: inherit;
+  color: var(--ivoire);
+  background: rgba(17, 25, 23, 0.8);
+  border: 1px solid var(--ligne);
+  border-radius: 8px;
+  padding: 9px 12px;
+  outline: none;
+}
+input:focus { border-color: var(--or); }
+input:disabled { opacity: 0.5; }
+input::placeholder { color: rgba(240, 229, 207, 0.35); }
+
+button { font: inherit; cursor: pointer; border-radius: 8px; }
+button:disabled { cursor: default; }
+
+.bouton-principal {
+  background: var(--or);
+  color: var(--noir);
+  border: none;
+  padding: 9px 18px;
+  font-weight: 600;
+  transition: filter 0.15s;
+}
+.bouton-principal:hover:not(:disabled) { filter: brightness(1.1); }
+.bouton-principal:disabled { opacity: 0.4; }
+
+.bouton-secondaire {
+  background: transparent;
+  color: var(--or);
+  border: 1px solid var(--or);
+  padding: 8px 16px;
+}
+.bouton-secondaire:hover:not(:disabled) { background: var(--or-pale); }
+.bouton-secondaire:disabled { opacity: 0.4; }
+
+.bouton-discret {
+  background: none;
+  border: none;
+  color: var(--ivoire-doux);
+  padding: 4px 8px;
+}
+.bouton-discret:hover { color: var(--ivoire); text-decoration: underline; }
+
+.bouton-mode {
+  background: transparent;
+  color: var(--ivoire);
+  border: 1px solid var(--ligne);
+  padding: 7px 14px;
+  border-radius: 999px;
+}
+.bouton-mode.actif { background: var(--bordeaux); border-color: var(--bordeaux-clair); }
+
+.bouton-mini {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: var(--or-pale);
+  color: var(--or);
+  border: 1px solid var(--or);
+  border-radius: 6px;
+  line-height: 1;
+  box-shadow: 0 0 6px rgba(209, 177, 122, 0.25);
+  transition: background 0.15s, box-shadow 0.15s;
+}
+.bouton-mini:hover:not(:disabled) { background: rgba(209, 177, 122, 0.3); box-shadow: 0 0 10px rgba(209, 177, 122, 0.45); }
+.bouton-mini:disabled {
+  background: transparent;
+  color: rgba(240, 229, 207, 0.25);
+  border-color: rgba(240, 229, 207, 0.12);
+  box-shadow: none;
+}
+
+.carte {
+  background: rgba(29, 48, 43, 0.72);
+  border: 1px solid var(--ligne);
+  border-radius: var(--rayon);
+  padding: 16px 18px;
+}
+
+.badge {
+  font-size: 0.7rem;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(240, 229, 207, 0.12);
+  color: var(--ivoire-doux);
+  white-space: nowrap;
+}
+.badge-loup { background: var(--bordeaux); color: var(--ivoire); }
+.badge-role { background: var(--or-pale); color: var(--or); }
+
+.toast-erreur {
+  position: fixed;
+  bottom: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 32px);
+  background: var(--bordeaux);
+  color: var(--ivoire);
+  border: 1px solid var(--bordeaux-clair);
+  padding: 10px 18px;
+  border-radius: var(--rayon);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  cursor: pointer;
+}
+
+.chargement { display: grid; place-items: center; height: 100%; color: var(--ivoire-doux); font-family: var(--titre); }
+
+/* ------------------------------------------------------------ Barre du haut */
+
+.barre {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--ligne);
+  background: rgba(17, 25, 23, 0.6);
+}
+.marque { font-family: var(--titre); font-weight: 700; font-size: 1.2rem; color: var(--or); }
+.barre-espace { flex: 1; }
+.titre-phase { font-family: var(--titre); font-size: 1.05rem; color: var(--ivoire); }
+.minuteur { font-variant-numeric: tabular-nums; color: var(--or); font-weight: 600; }
+.minuteur.urgent { color: var(--bordeaux-clair); }
+
+/* ------------------------------------------------------------ Connexion */
+
+.page-connexion { display: grid; place-items: center; min-height: 100%; padding: 16px; }
+.carte-connexion {
+  width: min(380px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: center;
+  padding: 32px 28px;
+}
+.carte-connexion h1 { font-size: 2.2rem; }
+.embleme { font-size: 3rem; }
+.sous-titre { margin: -6px 0 6px; color: var(--ivoire-doux); font-style: italic; }
+.champ { display: flex; flex-direction: column; gap: 6px; text-align: left; font-size: 0.85rem; color: var(--ivoire-doux); }
+.champ em { color: var(--or); font-style: normal; }
+
+/* ------------------------------------------------------------ Salon */
+
+.page-salon { min-height: 100%; }
+.salon { max-width: 980px; margin: 0 auto; padding: 24px 16px 48px; display: flex; flex-direction: column; gap: 28px; }
+.salon-accueil { display: flex; flex-direction: column; gap: 12px; padding: 24px; }
+.salon-accueil h1 { font-size: 1.8rem; }
+.salon-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.code-rapide { display: flex; gap: 8px; }
+.code-rapide input { width: 100px; text-transform: uppercase; letter-spacing: 0.1em; }
+.reprise {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--or-pale);
+}
+
+.liste-parties h2 { font-size: 1.15rem; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+.compteur { font-family: var(--texte); font-size: 0.8rem; color: var(--noir); background: var(--or); border-radius: 999px; padding: 1px 8px; }
+.liste-parties ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+.ligne-partie { display: flex; flex-direction: column; gap: 8px; }
+.ligne-partie-titre { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.ligne-partie button { align-self: flex-start; margin-top: 4px; }
+
+/* ------------------------------------------------------------ Partie */
+
+.page-partie { height: 100%; display: flex; flex-direction: column; transition: background 0.8s; }
+.page-partie[data-phase="Jour"],
+.page-partie[data-phase="Terminee"],
+.page-partie[data-phase="Lobby"] {
+  background: radial-gradient(ellipse at 50% 20%, rgba(209, 177, 122, 0.16) 0%, transparent 60%), var(--petrole);
+}
+
+.table-de-jeu {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 16px;
+  padding: 16px;
+}
+
+.zone-plateau { display: flex; flex-direction: column; min-height: 0; gap: 10px; }
+
+/* Bandeau : ce qui se passe, et ce que je dois faire */
+.bandeau { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.narration { font-size: 1.6rem; }
+.consigne {
+  margin: 0;
+  padding: 6px 18px;
+  border-radius: 999px;
+  background: var(--or-pale);
+  border: 1px solid var(--or);
+  color: var(--ivoire);
+  font-weight: 500;
+  animation: appel 2.4s ease-in-out infinite;
+}
+.consigne-lobby { margin: 0; color: var(--ivoire-doux); }
+.obstacle { color: var(--bordeaux-clair); }
+.bandeau-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; min-height: 4px; }
+
+@keyframes appel {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(209, 177, 122, 0); }
+  50% { box-shadow: 0 0 18px 0 rgba(209, 177, 122, 0.25); }
+}
+
+/* Plateau : les joueurs en cercle autour de la table */
+.plateau { position: relative; flex: 1; min-height: 360px; }
+.plateau::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 72%;
+  height: 64%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1px solid var(--ligne);
+  background: radial-gradient(ellipse, rgba(29, 48, 43, 0.55), rgba(17, 25, 23, 0.25));
+  pointer-events: none;
+}
+
+.siege {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  min-width: 108px;
+  max-width: 160px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: var(--petrole);
+  color: var(--ivoire);
+  border: 1px solid var(--ligne);
+  border-radius: var(--rayon);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  transition: transform 0.15s, border-color 0.15s, background 0.15s, opacity 0.3s;
+}
+.siege:disabled { cursor: default; }
+.siege-nom { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.siege-badges { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
+.siege.moi { border: 2px solid var(--or); }
+.siege.loup-allie { border-color: var(--bordeaux-clair); }
+.siege.mort { opacity: 0.4; filter: grayscale(0.8); }
+.siege.mort .siege-nom { text-decoration: line-through; }
+
+.siege.ciblable { cursor: pointer; border-color: var(--or); animation: appel 2.4s ease-in-out infinite; }
+.siege.ciblable:hover { transform: translate(-50%, -50%) scale(1.07); background: var(--petrole-clair); }
+.siege.mon-vote { background: var(--bordeaux); border-color: var(--bordeaux-clair); }
+
+.siege-voix {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--bordeaux);
+  border: 1px solid var(--bordeaux-clair);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.siege-a-vote { position: absolute; bottom: -8px; right: -6px; color: var(--or); font-size: 0.9rem; }
+
+/* Journal : l'historique du chat flotte au centre de la table */
+.journal {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(58%, 600px);
+  height: 46%;
+  margin: 0;
+  padding: 28px 16px 10px;
+  list-style: none;
+  overflow-y: auto;
+  z-index: 1;
+  border-radius: 18px;
+  background: rgba(17, 25, 23, 0.5);
+  backdrop-filter: blur(6px);
+  opacity: 0.88;
+  transition: opacity 0.2s, background 0.2s;
+  mask-image: linear-gradient(to bottom, transparent 0, #000 40px);
+}
+.journal:hover { opacity: 1; background: rgba(17, 25, 23, 0.78); }
+
+.message { padding: 3px 0; line-height: 1.4; overflow-wrap: anywhere; }
+.message .auteur { font-weight: 600; color: var(--or); margin-right: 6px; }
+.message.annonce { color: var(--ivoire-doux); font-style: italic; }
+.message.canal-Loups, .message.canal-Loups .auteur { color: var(--bordeaux-clair); }
+.message.canal-Morts, .message.canal-Morts .auteur { color: var(--morts); font-style: italic; }
+.message.canal-Prive {
+  color: var(--or);
+  font-style: normal;
+  background: var(--or-pale);
+  border-radius: 6px;
+  padding: 4px 8px;
+  margin: 3px 0;
+}
+
+/* Saisie du chat, en bas de la fenêtre */
+.saisie-chat { display: flex; gap: 8px; }
+.saisie-chat input { flex: 1; }
+.saisie-chat.canal-Loups input { border-color: var(--bordeaux-clair); }
+.saisie-chat.canal-Morts input { border-color: var(--morts); }
+
+/* Panneau de droite */
+.panneau-droit { display: flex; flex-direction: column; gap: 16px; overflow-y: auto; min-height: 0; }
+
+.carte-role { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.carte-role .illustration {
+  width: 100%;
+  height: 130px;
+  display: grid;
+  place-items: center;
+  font-size: 3.4rem;
+  border: 1px dashed var(--ligne);
+  border-radius: 8px;
+  background: rgba(17, 25, 23, 0.4);
+}
+.carte-role h3 { font-size: 1.25rem; }
+.carte-role p { margin: 0; color: var(--ivoire-doux); line-height: 1.45; font-size: 0.9rem; }
+.carte-role.morte .illustration { filter: grayscale(1); opacity: 0.5; }
+.camp { font-size: 0.75rem; padding: 2px 10px; border-radius: 999px; background: var(--or-pale); color: var(--or); }
+.camp.camp-LoupsGarous { background: var(--bordeaux); color: var(--ivoire); }
+.ruban-mort { color: var(--bordeaux-clair) !important; font-family: var(--titre); }
+
+.recap-roles h3 { font-size: 1rem; display: flex; align-items: baseline; gap: 4px; margin-bottom: 10px; }
+.recap-roles h3 .bouton-discret { margin-left: auto; }
+.recap-roles h3 .discret { font-family: var(--texte); font-weight: 400; font-size: 0.8rem; }
+.recap-roles ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.ligne-role { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 0.9rem; }
+
+.infobulle-declencheur {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid var(--ligne);
+  background: transparent;
+  color: var(--ivoire-doux);
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: help;
+}
+.infobulle-declencheur:hover,
+.infobulle-declencheur:focus-visible { border-color: var(--or); color: var(--or); outline: none; }
+
+.infobulle {
+  position: fixed;
+  transform: translateY(-50%);
+  z-index: 50;
+  width: 260px;
+  padding: 12px 14px;
+  background: var(--noir);
+  border: 1px solid var(--or);
+  border-radius: var(--rayon);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+}
+.infobulle strong { font-family: var(--titre); color: var(--or); }
+.infobulle p { margin: 6px 0 0; color: var(--ivoire); font-size: 0.85rem; line-height: 1.45; }
+/* Petite flèche pointant vers le « ? » */
+.infobulle::after {
+  content: "";
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  background: var(--noir);
+  border-top: 1px solid var(--or);
+  border-right: 1px solid var(--or);
+  transform: translateY(-50%) rotate(45deg);
+}
+.ligne-role-nom { flex: 1; }
+.ligne-role.camp-LoupsGarous .ligne-role-nom { color: var(--bordeaux-clair); }
+.ligne-role .nombre { font-variant-numeric: tabular-nums; color: var(--or); min-width: 2ch; text-align: right; }
+/* Seuls l'icône, le nom et le nombre s'éteignent : les boutons +/− restent lisibles. */
+.ligne-role.eteint :is(.ligne-role-icone, .ligne-role-nom, .nombre) { opacity: 0.35; }
+.ligne-role.eteint .ligne-role-nom { text-decoration: line-through; }
+.compteur-role { display: flex; align-items: center; gap: 6px; }
+.compteur-role .nombre { text-align: center; }
+
+/* ------------------------------------------------------------ Petits écrans */
+
+@media (max-width: 860px) {
+  .table-de-jeu { grid-template-columns: 1fr; overflow-y: auto; }
+  .page-partie { height: auto; min-height: 100%; }
+  .barre { flex-wrap: wrap; gap: 8px 12px; padding: 10px 16px; }
+  .narration { font-size: 1.25rem; }
+  .plateau { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; min-height: 0; }
+  .plateau::before { display: none; }
+  .siege { position: relative; left: auto !important; top: auto !important; transform: none; }
+  .siege.ciblable:hover { transform: scale(1.05); }
+  .journal { position: static; transform: none; width: 100%; height: 40vh; }
+}

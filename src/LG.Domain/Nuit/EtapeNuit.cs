@@ -7,8 +7,11 @@ namespace LG.Domain.Nuit;
 /// </summary>
 internal abstract class EtapeNuit
 {
-    /// <summary>Texte affiché aux acteurs de l'étape.</summary>
-    public abstract string Nom { get; }
+    /// <summary>Ce que tout le village voit pendant l'étape (« Le Garde doit protéger quelqu'un »).</summary>
+    public abstract string Narration { get; }
+
+    /// <summary>Instruction affichée aux acteurs de l'étape.</summary>
+    public abstract string Consigne { get; }
 
     /// <summary>Joueurs vivants qui agissent pendant cette étape.</summary>
     public abstract IEnumerable<Joueur> Acteurs(Partie partie);

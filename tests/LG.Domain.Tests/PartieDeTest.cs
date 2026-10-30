@@ -52,4 +52,9 @@ internal sealed class PartieDeTest
         Horloge.Avancer(Partie.Parametres.DureeJour);
         Partie.Actualiser();
     }
+
+    public void Dire(Joueur joueur, string texte) => Partie.EnvoyerMessage(joueur.Id, texte);
+
+    public bool JournalPublicContient(params string[] fragments)
+        => Partie.Journal.Any(e => e.Canal == Canal.Public && fragments.All(e.Texte.Contains));
 }

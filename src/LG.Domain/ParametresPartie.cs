@@ -6,7 +6,8 @@ public sealed record ParametresPartie
     public int JoueursMaximum { get; init; } = 16;
     public TimeSpan DureeEtapeNuit { get; init; } = TimeSpan.FromSeconds(30);
     public TimeSpan DureeJour { get; init; } = TimeSpan.FromMinutes(3);
+    public TimeSpan DureeDerniereVolonte { get; init; } = TimeSpan.FromSeconds(30);
 
-    /// <summary>Rôles à distribuer. Null = composition automatique selon le nombre de joueurs.</summary>
+    /// <summary>Rôles à distribuer. Null = composition automatique (l'hôte peut la changer dans le lobby).</summary>
     public IReadOnlyList<RoleId>? Composition { get; init; }
 }

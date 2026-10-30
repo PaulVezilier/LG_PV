@@ -4,7 +4,9 @@ namespace LG.Domain.Nuit;
 
 internal sealed class EtapeLoupNoir : EtapeNuit
 {
-    public override string Nom => "Loup-Garou Noir : voulez-vous infecter la victime ?";
+    public override string Narration => "Le Loup-Garou Noir hésite à infecter la victime";
+
+    public override string Consigne => "Voulez-vous infecter la victime ?";
 
     public override IEnumerable<Joueur> Acteurs(Partie partie) => partie.EtatNuit.VictimeLoups is null
         ? Enumerable.Empty<Joueur>()

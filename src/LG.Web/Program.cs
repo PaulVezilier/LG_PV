@@ -16,5 +16,7 @@ var app = builder.Build();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 app.MapHub<PartieHub>("/hub/partie");
+// Le front (React) gère ses propres routes : /salon, /partie/ABCDE...
+app.MapFallbackToFile("index.html");
 
 app.Run();
