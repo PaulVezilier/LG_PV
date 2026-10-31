@@ -19,4 +19,14 @@ public sealed class LoupAmnesique : Role
     public bool Reveille { get; private set; }
 
     internal void Reveiller() => Reveille = true;
+
+    internal override bool AbsorberMorsure(Partie partie, Joueur moi)
+    {
+        if (Reveille)
+            return false;
+        Reveiller();
+        partie.JournaliserPrive(moi, "🐺 La morsure des loups vous rend la mémoire : vous êtes un Loup Amnésique ! Vous survivez et rejoignez la meute.");
+        partie.JournaliserLoups($"{moi.Nom} était un Loup Amnésique : la morsure l'a réveillé, il rejoint la meute !");
+        return true;
+    }
 }

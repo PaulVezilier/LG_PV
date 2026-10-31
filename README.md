@@ -65,8 +65,9 @@ Principes :
 ### Ajouter un rôle
 
 1. Ajouter la valeur dans `RoleId` (`Enumerations.cs`) et la classe dans `Roles/`, puis l'enregistrer dans `FabriqueRoles`.
-2. S'il agit la nuit : créer une classe `EtapeXxx : EtapeNuit` et l'insérer au bon endroit de `Partie.OrdreNuit`.
-3. Si son effet se résout à l'aube : ajouter l'info dans `EtatNuit` et la traiter dans `Partie.ResoudreNuit`.
+2. Ses effets hors de la nuit se codent dans sa classe, en redéfinissant les crochets de `Role` : `DebutDeJournee`, `FinDeJournee`, `ApresMessageDuJour`, `ActionsDuJour` / `ExecuterActionDuJour`, `AbsorberMorsure` / `SurvivreMorsure`, `QuandUnJoueurMeurt`, et la dernière volonté (`AnnonceDerniereVolonte`, `ConsigneDerniereVolonte`, `ActionsDerniereVolonte`, `ExecuterDerniereVolonte`). `Partie` ne connaît aucun rôle en particulier.
+3. S'il agit la nuit : créer une classe `EtapeXxx : EtapeNuit` et l'insérer au bon endroit de `Partie.OrdreNuit`.
+4. Si son effet se résout à l'aube : ajouter l'info dans `EtatNuit` et la traiter dans `Partie.ResoudreNuit`.
 
 ## Règles implémentées (choix à valider)
 
@@ -82,7 +83,7 @@ Principes :
 - **Cupidon** : première nuit, deux clics pour désigner le couple (lui-même compris). Les amoureux connaissent le nom et le rôle (tel qu'ils le croient) l'un de l'autre. Un couple mixte forme le camp « Amoureux ».
 - **Chasseur / Loup Vengeur** : à leur mort (nuit, jour, chagrin, poison), ils tirent sur un vivant. Un tir peut tuer un autre Chasseur : les volontés s'enchaînent.
 - **Dictateur** : bouton « Coup d'État » pendant le jour, une fois par partie. La cible meurt, le vote est annulé et la nuit tombe.
-- **Héritier** : choisit sa cible la première nuit. À sa mort, il reçoit le même objet rôle (potions, infection déjà utilisée, etc.) et donc le même camp. Ni l'infection ni le couple du défunt ne s'héritent.
+- **Héritier** : choisit sa cible la première nuit. À sa mort, il **reste Héritier** mais reçoit comme pouvoir le même objet rôle que le défunt (potions, infection déjà utilisée, etc.), et donc son camp. Il s'affiche « Héritier (Sorcière) » pour lui-même et à sa mort ; la Voyante voit « Héritier ». Ni l'infection ni le couple du défunt ne s'héritent. Dans le code, `Joueur.Role` est l'identité et `Joueur.Pouvoir` le rôle dont il utilise les pouvoirs : les étapes de nuit et les crochets passent toujours par `Pouvoir`.
 - **Chaperon Rouge** : survit à l'attaque des loups tant qu'un Chasseur est vivant. L'infection du Loup Noir fonctionne quand même sur lui.
 - **Croque-Mort** : la nuit, il lit et écrit dans le chat des morts (il n'entend pas ce que disent les morts le jour). À sa mort, il désigne un vivant ; un vivant du camp opposé est tiré au sort ; le village apprend les deux noms, dans un ordre aléatoire.
 - **Vétéran** : mordu par les loups (sans Garde, Sorcière ni infection), il survit, le village est prévenu, et il meurt à la fin de la journée (après le vote ou le coup d'État).

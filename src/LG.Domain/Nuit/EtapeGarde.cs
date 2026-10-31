@@ -8,11 +8,11 @@ internal sealed class EtapeGarde : EtapeNuit
 
     public override string Consigne => "Cliquez sur le joueur à protéger cette nuit";
 
-    public override IEnumerable<Joueur> Acteurs(Partie partie) => partie.Vivants.Where(j => j.Role is Garde);
+    public override IEnumerable<Joueur> Acteurs(Partie partie) => partie.VivantsAvec<Garde>();
 
     public override IReadOnlyList<ActionDisponible> ActionsDisponibles(Partie partie, Joueur joueur)
     {
-        if (joueur.Role is not Garde garde || ATermine(partie, joueur))
+        if (joueur.Pouvoir is not Garde garde || ATermine(partie, joueur))
             return [];
         return [ActionDisponible.AvecCible(ActionType.Proteger, "Protéger", partie.Vivants.Where(garde.PeutProteger))];
     }
@@ -20,7 +20,7 @@ internal sealed class EtapeGarde : EtapeNuit
     public override void Executer(Partie partie, Joueur joueur, ActionType action, Joueur? cible)
     {
         partie.EtatNuit.Protege = cible;
-        ((Garde)joueur.Role!).EnregistrerProtection(cible);
+        ((Garde)joueur.Pouvoir!).EnregistrerProtection(cible);
         partie.JournaliserPrive(joueur, $"Vous protégez {cible!.Nom} cette nuit.");
         MarquerTermine(partie, joueur);
     }
@@ -29,6 +29,6 @@ internal sealed class EtapeGarde : EtapeNuit
     {
         // Un garde qui n'a protégé personne pourra protéger n'importe qui la nuit suivante.
         foreach (var joueur in Acteurs(partie).Where(j => !ATermine(partie, j)))
-            ((Garde)joueur.Role!).EnregistrerProtection(null);
+            ((Garde)joueur.Pouvoir!).EnregistrerProtection(null);
     }
 }

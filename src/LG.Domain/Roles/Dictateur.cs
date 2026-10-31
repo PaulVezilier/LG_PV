@@ -15,4 +15,16 @@ public sealed class Dictateur : Role
             throw new ActionInvalideException("Vous avez déjà fait votre coup d'État.");
         CoupDisponible = false;
     }
+
+    internal override IEnumerable<ActionDisponible> ActionsDuJour(Partie partie, Joueur moi)
+        => CoupDisponible ? [ActionDisponible.AvecCible(ActionType.CoupDEtat, "Coup d'État", partie.Vivants.Where(j => j != moi))] : [];
+
+    /// <summary>La cible meurt, le vote est annulé et la nuit tombe.</summary>
+    internal override void ExecuterActionDuJour(Partie partie, Joueur moi, ActionType type, Joueur? cible)
+    {
+        UtiliserCoup();
+        partie.JournaliserPublic($"⚔️ Coup d'État ! {moi.Nom} prend le contrôle du village et fait exécuter {cible!.Nom}.");
+        partie.Tuer(cible, "a été exécuté par le Dictateur");
+        partie.TerminerJournee();
+    }
 }

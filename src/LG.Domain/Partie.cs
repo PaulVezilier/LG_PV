@@ -7,6 +7,7 @@ namespace LG.Domain;
 /// Une partie de Loup-Garou : Lobby → (Nuit ⇄ Jour)* → Terminée, avec des pauses « Dernières volontés »
 /// quand un mort a encore un pouvoir à utiliser.
 /// Cette classe n'est pas thread-safe : l'appelant doit sérialiser les accès (lock).
+/// Elle ne connaît aucun rôle en particulier : les effets propres à chaque rôle passent par les crochets de <see cref="Role"/>.
 /// </summary>
 public sealed class Partie
 {
@@ -23,10 +24,13 @@ public sealed class Partie
     ];
 
     private readonly List<Joueur> _joueurs = [];
+    private readonly Dictionary<string, Joueur> _joueursParId = [];
     private readonly List<EvenementJournal> _journal = [];
     private readonly Dictionary<string, string> _votesJour = [];
     private readonly Queue<(Joueur Joueur, string Cause)> _morts = new();
-    private readonly List<DerniereVolonte> _volontes = [];
+
+    /// <summary>Morts qui n'ont pas encore exprimé leur dernière volonté.</summary>
+    private readonly List<Joueur> _volontes = [];
     private readonly TimeProvider _horloge;
     private int _indexEtape = -1;
 
@@ -67,12 +71,13 @@ public sealed class Partie
     internal EtapeNuit? EtapeCourante =>
         Phase == Phase.Nuit && _indexEtape >= 0 && _indexEtape < OrdreNuit.Length ? OrdreNuit[_indexEtape] : null;
 
-    internal DerniereVolonte? VolonteDe(Joueur joueur) => _volontes.FirstOrDefault(v => v.Joueur == joueur);
-
-    internal IEnumerable<Joueur> JoueursAvecVolonte => _volontes.Select(v => v.Joueur);
+    internal IReadOnlyList<Joueur> JoueursAvecVolonte => _volontes;
 
     public Joueur TrouverJoueur(string id)
-        => _joueurs.FirstOrDefault(j => j.Id == id) ?? throw new ActionInvalideException("Joueur introuvable.");
+        => _joueursParId.GetValueOrDefault(id) ?? throw new ActionInvalideException("Joueur introuvable.");
+
+    /// <summary>Joueurs vivants qui ont actuellement ce rôle (ou un rôle qui en dérive).</summary>
+    public IEnumerable<Joueur> VivantsAvec<TRole>() where TRole : Role => Vivants.Where(j => j.Pouvoir is TRole);
 
     /// <summary>Camp pour la victoire : un couple aux camps opposés joue pour lui-même.</summary>
     public static Camp CampDeVictoire(Joueur joueur)
@@ -94,6 +99,7 @@ public sealed class Partie
 
         var joueur = new Joueur(Guid.NewGuid().ToString("N")[..8], nom);
         _joueurs.Add(joueur);
+        _joueursParId.Add(joueur.Id, joueur);
         HoteId ??= joueur.Id;
         JournaliserPublic($"{nom} a rejoint la partie.");
         return joueur;
@@ -106,6 +112,7 @@ public sealed class Partie
             throw new ActionInvalideException("On ne peut plus quitter une partie commencée.");
         var joueur = TrouverJoueur(joueurId);
         _joueurs.Remove(joueur);
+        _joueursParId.Remove(joueur.Id);
         if (HoteId == joueur.Id)
             HoteId = _joueurs.FirstOrDefault()?.Id;
         JournaliserPublic($"{joueur.Nom} a quitté la partie.");
@@ -172,7 +179,7 @@ public sealed class Partie
     private IReadOnlyList<ActionDisponible> ActionsDisponibles(Joueur joueur)
     {
         if (Phase == Phase.DernieresVolontes)
-            return VolonteDe(joueur) is { } volonte ? volonte.Actions(this) : [];
+            return _volontes.Contains(joueur) ? joueur.Pouvoir!.ActionsDerniereVolonte(this, joueur) : [];
         if (!joueur.EstVivant)
             return [];
 
@@ -182,11 +189,7 @@ public sealed class Partie
                 return etape.ActionsDisponibles(this, joueur);
 
             case Phase.Jour:
-                var autres = Vivants.Where(j => j != joueur).ToList();
-                var actions = new List<ActionDisponible> { ActionDisponible.AvecCible(ActionType.Voter, "Voter contre", autres) };
-                if (joueur.Role is Dictateur { CoupDisponible: true })
-                    actions.Add(ActionDisponible.AvecCible(ActionType.CoupDEtat, "Coup d'État", autres));
-                return actions;
+                return [ActionDisponible.AvecCible(ActionType.Voter, "Voter contre", Vivants.Where(j => j != joueur)), .. joueur.Pouvoir!.ActionsDuJour(this, joueur)];
 
             default:
                 return [];
@@ -216,18 +219,15 @@ public sealed class Partie
                     PasserEtapeSuivante();
                 break;
 
-            case Phase.Jour when type == ActionType.CoupDEtat:
-                ((Dictateur)joueur.Role!).UtiliserCoup();
-                JournaliserPublic($"⚔️ Coup d'État ! {joueur.Nom} prend le contrôle du village et fait exécuter {cible!.Nom}.");
-                Tuer(cible, "a été exécuté par le Dictateur");
-                Resoudre(FinirJournee);
-                break;
-
-            case Phase.Jour:
+            case Phase.Jour when type == ActionType.Voter:
                 _votesJour[joueur.Id] = cible!.Id;
                 JournaliserPublic($"{joueur.Nom} vote contre {cible.Nom}.");
                 if (Vivants.All(j => _votesJour.ContainsKey(j.Id)))
                     ResoudreJour();
+                break;
+
+            case Phase.Jour:
+                joueur.Pouvoir!.ExecuterActionDuJour(this, joueur, type, cible);
                 break;
 
             case Phase.DernieresVolontes:
@@ -244,7 +244,7 @@ public sealed class Partie
         (Phase.Lobby or Phase.Terminee, _) => Canal.Public,
         (_, { EstVivant: false }) => Canal.Morts,
         (Phase.Nuit, { EstLoup: true }) => Canal.Loups,
-        (Phase.Nuit, { Role: CroqueMort }) => Canal.Morts,
+        (Phase.Nuit, { Pouvoir.EntendLesMortsLaNuit: true }) => Canal.Morts,
         (Phase.Nuit, _) => null,
         _ => Canal.Public,
     };
@@ -262,8 +262,8 @@ public sealed class Partie
             ?? throw new ActionInvalideException("Le village dort : vous ne pouvez pas parler la nuit.");
         Journaliser(canal, texte, joueur.Nom, []);
 
-        if (canal == Canal.Public && Phase == Phase.Jour && joueur.Role is LoupBavard bavard && bavard.EssayerDePlacer(texte))
-            JournaliserPrive(joueur, "✅ Mot placé : vous êtes sauf pour aujourd'hui.");
+        if (canal == Canal.Public && Phase == Phase.Jour)
+            joueur.Pouvoir!.ApresMessageDuJour(this, joueur, texte);
     }
 
     /// <summary>À appeler régulièrement : fait avancer la partie quand le temps de la phase est écoulé.</summary>
@@ -282,8 +282,8 @@ public sealed class Partie
                 ResoudreJour();
                 break;
             case Phase.DernieresVolontes:
-                foreach (var volonte in _volontes)
-                    JournaliserPublic($"{volonte.Joueur.Nom} n'a pas eu le temps d'exprimer sa dernière volonté.");
+                foreach (var mort in _volontes)
+                    JournaliserPublic($"{mort.Nom} n'a pas eu le temps d'exprimer sa dernière volonté.");
                 _volontes.Clear();
                 Continuer();
                 break;
@@ -336,34 +336,26 @@ public sealed class Partie
         Resoudre(DebuterJour);
     }
 
-    /// <summary>Victime des loups non protégée par le Garde : dans l'ordre, ce qui peut encore la sauver.</summary>
+    /// <summary>
+    /// Victime des loups non protégée par le Garde : dans l'ordre, ce qui peut encore la sauver
+    /// (réveil de l'Amnésique, infection, potion de vie, puis Chaperon Rouge ou Vétéran).
+    /// </summary>
     private void SubirAttaqueDesLoups(Joueur victime)
     {
-        if (victime.Role is LoupAmnesique { Reveille: false } amnesique)
-        {
-            amnesique.Reveiller();
-            JournaliserPrive(victime, "🐺 La morsure des loups vous rend la mémoire : vous êtes un Loup Amnésique ! Vous survivez et rejoignez la meute.");
-            JournaliserLoups($"{victime.Nom} était un Loup Amnésique : la morsure l'a réveillé, il rejoint la meute !");
-        }
-        else if (EtatNuit.VictimeInfectee)
+        var role = victime.Pouvoir!;
+        if (role.AbsorberMorsure(this, victime))
+            return;
+
+        if (EtatNuit.VictimeInfectee)
         {
             victime.Infecter();
             JournaliserPrive(victime, "🐺 Vous avez été infecté par le Loup-Garou Noir : vous rejoignez la meute, tout en gardant votre pouvoir !");
             JournaliserLoups($"{victime.Nom} a été infecté et rejoint la meute.");
+            return;
         }
-        else if (EtatNuit.VictimeSoignee || victime.Role is ChaperonRouge && Vivants.Any(j => j.Role is Chasseur))
-        {
-            // Sauvé par la Sorcière, ou Chaperon Rouge protégé par la présence du Chasseur.
-        }
-        else if (victime.Role is Veteran && !victime.EstBlesse)
-        {
-            victime.Blesser();
-            JournaliserPublic($"🩸 {victime.Nom} a été attaqué par les loups mais a survécu ! Gravement blessé, il succombera à ses blessures ce soir.");
-        }
-        else
-        {
+
+        if (!EtatNuit.VictimeSoignee && !role.SurvivreMorsure(this, victime))
             Tuer(victime, "a été retrouvé mort ce matin");
-        }
     }
 
     // ---------------------------------------------------------------- Jour
@@ -374,12 +366,8 @@ public sealed class Partie
         _votesJour.Clear();
         FinPhase = _horloge.GetUtcNow() + Parametres.DureeJour;
 
-        foreach (var joueur in Vivants.Where(j => j.Role is LoupBavard))
-        {
-            var bavard = (LoupBavard)joueur.Role!;
-            bavard.TirerMot(Aleatoire);
-            JournaliserPrive(joueur, $"🗣️ Votre mot du jour : « {bavard.MotImpose} ». Placez-le dans le chat du village avant ce soir, sinon vous mourrez.");
-        }
+        foreach (var joueur in Vivants)
+            joueur.Pouvoir!.DebutDeJournee(this, joueur);
     }
 
     private void ResoudreJour()
@@ -390,16 +378,17 @@ public sealed class Partie
         else
             Tuer(elimine, "a été éliminé par le village");
 
-        Resoudre(FinirJournee);
+        TerminerJournee();
     }
 
-    /// <summary>Après le vote ou le coup d'État : les morts « de fin de journée », puis la nuit.</summary>
+    /// <summary>Après le vote ou un coup d'État : traite les morts, puis passe à la fin de journée.</summary>
+    internal void TerminerJournee() => Resoudre(FinirJournee);
+
+    /// <summary>Les morts « de fin de journée » (Vétéran blessé, Loup Bavard muet...), puis la nuit.</summary>
     private void FinirJournee()
     {
-        foreach (var blesse in Vivants.Where(j => j.EstBlesse))
-            Tuer(blesse, "a succombé à ses blessures");
-        foreach (var bavard in Vivants.Where(j => j.Role is LoupBavard { MotImpose: not null, MotPlace: false }))
-            Tuer(bavard, "n'a pas réussi à placer son mot et s'est étranglé de rage");
+        foreach (var joueur in Vivants)
+            joueur.Pouvoir!.FinDeJournee(this, joueur);
 
         Resoudre(CommencerNuit);
     }
@@ -407,7 +396,7 @@ public sealed class Partie
     // ---------------------------------------------------------------- Morts et dernières volontés
 
     /// <summary>Les morts sont mises en file puis traitées par <see cref="Resoudre"/>, qui gère les réactions en chaîne.</summary>
-    private void Tuer(Joueur joueur, string cause) => _morts.Enqueue((joueur, cause));
+    internal void Tuer(Joueur joueur, string cause) => _morts.Enqueue((joueur, cause));
 
     private void Resoudre(Action suite)
     {
@@ -446,63 +435,28 @@ public sealed class Partie
             if (joueur.Amoureux is { EstVivant: true } amoureux)
                 Tuer(amoureux, $"meurt de chagrin, inconsolable après la perte de {joueur.Nom}");
 
-            foreach (var heritier in Vivants.Where(h => h.Role is Heritier role && role.CibleId == joueur.Id).ToList())
-                Heriter(heritier, joueur);
+            // ToList : un Héritier change de rôle pendant le parcours.
+            foreach (var vivant in Vivants.ToList())
+                vivant.Pouvoir!.QuandUnJoueurMeurt(this, vivant, joueur);
 
-            if (joueur.Role!.DerniereVolonte is { } type)
+            if (joueur.Pouvoir!.AnnonceDerniereVolonte is { } annonce)
             {
-                _volontes.Add(new DerniereVolonte(joueur, type));
-                JournaliserPrive(joueur, type == ActionType.Tirer
-                    ? "Vous êtes mort, mais il vous reste une balle : choisissez sur qui tirer."
-                    : "Avant de partir, désignez un joueur : le village saura qu'entre lui et un autre joueur, il y a un loup-garou.");
+                _volontes.Add(joueur);
+                JournaliserPrive(joueur, annonce);
             }
         }
     }
 
-    /// <summary>L'Héritier reçoit le même objet rôle que le défunt, avec tout son état (potions, etc.).</summary>
-    private void Heriter(Joueur heritier, Joueur defunt)
-    {
-        var role = defunt.Role!;
-        heritier.Role = role;
-        JournaliserPrive(heritier, $"📜 {defunt.Nom} est mort : vous héritez de son rôle. Vous êtes désormais {role.NomPourSoi}. {role.DescriptionPourSoi}");
-        if (heritier.EstLoup)
-            JournaliserLoups($"{heritier.Nom} a hérité du rôle de {defunt.Nom} et rejoint la meute.");
-    }
-
     private void ExecuterDerniereVolonte(Joueur joueur, ActionType type, Joueur? cible)
     {
-        _volontes.RemoveAll(v => v.Joueur == joueur);
-        switch (type)
-        {
-            case ActionType.Tirer:
-                JournaliserPublic($"🎯 Dans un dernier souffle, {joueur.Nom} tire sur {cible!.Nom} !");
-                Tuer(cible, "a été abattu");
-                break;
-            case ActionType.Designer:
-                RevelerParCroqueMort(joueur, cible!);
-                break;
-            default:
-                JournaliserPublic($"{joueur.Nom} emporte son secret dans la tombe.");
-                break;
-        }
+        _volontes.Remove(joueur);
+        if (type == ActionType.Passer)
+            JournaliserPublic($"{joueur.Nom} emporte son secret dans la tombe.");
+        else
+            joueur.Pouvoir!.ExecuterDerniereVolonte(this, joueur, cible!);
 
         if (_volontes.Count == 0)
             Continuer();
-    }
-
-    /// <summary>Le désigné + un joueur tiré au sort dans le camp opposé : exactement un des deux est un loup.</summary>
-    private void RevelerParCroqueMort(Joueur croqueMort, Joueur designe)
-    {
-        var candidats = Vivants.Where(j => j != designe && j.EstLoup != designe.EstLoup).ToList();
-        if (candidats.Count == 0)
-        {
-            JournaliserPublic($"⚰️ Le Croque-Mort {croqueMort.Nom} n'a rien pu découvrir.");
-            return;
-        }
-
-        var autre = candidats[Aleatoire.Next(candidats.Count)];
-        var (premier, second) = Aleatoire.Next(2) == 0 ? (designe, autre) : (autre, designe);
-        JournaliserPublic($"⚰️ Le Croque-Mort {croqueMort.Nom} a parlé : entre {premier.Nom} et {second.Nom}, il y a un loup-garou.");
     }
 
     private bool VerifierVictoire()
@@ -529,7 +483,7 @@ public sealed class Partie
     // ---------------------------------------------------------------- Outils
 
     /// <summary>Vrai rôle, tel que révélé à la mort ou en fin de partie.</summary>
-    internal static string NomRole(Joueur joueur) => joueur.Role!.Nom + (joueur.EstInfecte ? " infecté" : "");
+    internal static string NomRole(Joueur joueur) => joueur.Role!.NomRevele + (joueur.EstInfecte ? " infecté" : "");
 
     /// <summary>Rôle tel que le joueur le connaît lui-même.</summary>
     internal static string NomRolePourSoi(Joueur joueur) => joueur.Role!.NomPourSoi + (joueur.EstInfecte ? " infecté" : "");

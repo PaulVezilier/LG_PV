@@ -8,7 +8,7 @@ internal sealed class EtapeVoyante : EtapeNuit
 
     public override string Consigne => "Cliquez sur le joueur dont vous voulez voir le rôle";
 
-    public override IEnumerable<Joueur> Acteurs(Partie partie) => partie.Vivants.Where(j => j.Role is Voyante);
+    public override IEnumerable<Joueur> Acteurs(Partie partie) => partie.VivantsAvec<Voyante>();
 
     public override IReadOnlyList<ActionDisponible> ActionsDisponibles(Partie partie, Joueur joueur)
     {

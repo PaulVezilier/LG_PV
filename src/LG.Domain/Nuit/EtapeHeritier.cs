@@ -10,7 +10,7 @@ internal sealed class EtapeHeritier : EtapeNuit
     public override string Consigne => "Cliquez sur le joueur dont vous hériterez";
 
     public override IEnumerable<Joueur> Acteurs(Partie partie) => partie.NumeroTour == 1
-        ? partie.Vivants.Where(j => j.Role is Heritier { CibleId: null })
+        ? partie.Vivants.Where(j => j.Pouvoir is Heritier { CibleId: null })
         : Enumerable.Empty<Joueur>();
 
     public override IReadOnlyList<ActionDisponible> ActionsDisponibles(Partie partie, Joueur joueur)
@@ -18,7 +18,7 @@ internal sealed class EtapeHeritier : EtapeNuit
 
     public override void Executer(Partie partie, Joueur joueur, ActionType action, Joueur? cible)
     {
-        ((Heritier)joueur.Role!).Choisir(cible!);
+        ((Heritier)joueur.Pouvoir!).Choisir(cible!);
         partie.JournaliserPrive(joueur, $"📜 À la mort de {cible!.Nom}, vous hériterez de son rôle.");
         MarquerTermine(partie, joueur);
     }

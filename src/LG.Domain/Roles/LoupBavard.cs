@@ -37,6 +37,24 @@ public sealed class LoupBavard : LoupGarou
         return MotPlace;
     }
 
+    internal override void DebutDeJournee(Partie partie, Joueur moi)
+    {
+        TirerMot(partie.Aleatoire);
+        partie.JournaliserPrive(moi, $"🗣️ Votre mot du jour : « {MotImpose} ». Placez-le dans le chat du village avant ce soir, sinon vous mourrez.");
+    }
+
+    internal override void ApresMessageDuJour(Partie partie, Joueur moi, string texte)
+    {
+        if (EssayerDePlacer(texte))
+            partie.JournaliserPrive(moi, "✅ Mot placé : vous êtes sauf pour aujourd'hui.");
+    }
+
+    internal override void FinDeJournee(Partie partie, Joueur moi)
+    {
+        if (MotImpose is not null && !MotPlace)
+            partie.Tuer(moi, "n'a pas réussi à placer son mot et s'est étranglé de rage");
+    }
+
     private static string Normaliser(string texte)
     {
         var decompose = texte.ToLowerInvariant().Normalize(NormalizationForm.FormD);

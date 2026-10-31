@@ -1,4 +1,3 @@
-using LG.Domain.Roles;
 
 namespace LG.Domain;
 
@@ -18,7 +17,7 @@ public sealed record EvenementJournal(
         Canal.Public => true,
         Canal.Loups => joueur.EstLoup,
         // Le Croque-Mort entend les morts, mais seulement la nuit.
-        Canal.Morts => !joueur.EstVivant || Nocturne && joueur.Role is CroqueMort,
+        Canal.Morts => !joueur.EstVivant || Nocturne && joueur.Pouvoir is { EntendLesMortsLaNuit: true },
         Canal.Prive => Destinataires.Contains(joueur.Id),
         _ => false,
     };

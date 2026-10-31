@@ -107,20 +107,28 @@ public class NouveauxRolesTests
     // ---------------------------------------------------------------- Héritier
 
     [Fact]
-    public void L_heritier_recupere_le_role_et_les_potions_restantes()
+    public void L_heritier_reste_heritier_mais_recupere_les_pouvoirs_et_les_potions_restantes()
     {
-        var t = new PartieDeTest(RoleId.LoupGarou, RoleId.Heritier, RoleId.Sorciere, RoleId.SimpleVillageois, RoleId.SimpleVillageois);
-        var (heritier, sorciere) = (t.Un<Heritier>(), t.Un<Sorciere>());
+        var t = new PartieDeTest(RoleId.LoupGarou, RoleId.Heritier, RoleId.Sorciere, RoleId.SimpleVillageois, RoleId.SimpleVillageois, RoleId.SimpleVillageois);
+        var (loup, heritier, sorciere) = (t.Un<LoupGarou>(), t.Un<Heritier>(), t.Un<Sorciere>());
+        var villageois = t.Tous<SimpleVillageois>();
 
         t.Agir(heritier, ActionType.Heriter, sorciere);
-        t.Agir(t.Un<LoupGarou>(), ActionType.Voter, sorciere);
-        t.Agir(sorciere, ActionType.Empoisonner, t.Tous<SimpleVillageois>()[0]);
+        t.Agir(loup, ActionType.Voter, sorciere);
+        t.Agir(sorciere, ActionType.Empoisonner, villageois[0]);
         t.Agir(sorciere, ActionType.Passer);
 
         Assert.False(sorciere.EstVivant);
-        Assert.IsType<Sorciere>(heritier.Role);
-        Assert.True(((Sorciere)heritier.Role!).PotionVieDisponible);
-        Assert.False(((Sorciere)heritier.Role!).PotionMortDisponible);
+        Assert.IsType<Heritier>(heritier.Role);
+        var pouvoir = Assert.IsType<Sorciere>(heritier.Pouvoir);
+        Assert.True(pouvoir.PotionVieDisponible);
+        Assert.False(pouvoir.PotionMortDisponible);
+        Assert.Equal("Héritier (Sorcière)", VuePartie.Pour(t.Partie, heritier.Id).Moi.Role);
+
+        // La nuit suivante, c'est lui qui joue l'étape de la Sorcière.
+        t.LaisserPasserLeJour();
+        t.Agir(loup, ActionType.Voter, villageois[1]);
+        Assert.Contains(t.Partie.ActionsDisponibles(heritier.Id), a => a.Type == ActionType.Soigner);
     }
 
     [Fact]

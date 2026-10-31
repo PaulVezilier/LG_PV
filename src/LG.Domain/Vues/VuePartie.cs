@@ -44,7 +44,7 @@ public sealed record VuePartie(
         var voix = votes.Values.GroupBy(id => id).ToDictionary(g => g.Key, g => g.Count());
 
         // Les amoureux se connaissent, et Cupidon sait qui il a uni.
-        bool VoitLeCouple(Joueur j) => j.Amoureux is not null && (finie || j == moi || j.Amoureux == moi || moi.Role is Cupidon);
+        bool VoitLeCouple(Joueur j) => j.Amoureux is not null && (finie || j == moi || j.Amoureux == moi || moi.Pouvoir is Cupidon);
 
         var joueurs = partie.Joueurs.Select(j => new VueJoueur(
             j.Id,
@@ -95,7 +95,7 @@ public sealed record VuePartie(
         {
             Phase.Nuit when etape is not null && actions.Count > 0 => etape.Consigne,
             Phase.Jour when actions.Count > 0 => "Cliquez sur le joueur contre qui vous votez",
-            Phase.DernieresVolontes => partie.VolonteDe(moi)?.Consigne,
+            Phase.DernieresVolontes when partie.JoueursAvecVolonte.Contains(moi) => moi.Pouvoir!.ConsigneDerniereVolonte,
             _ => null,
         };
 

@@ -10,7 +10,7 @@ internal sealed class EtapeLoupNoir : EtapeNuit
 
     public override IEnumerable<Joueur> Acteurs(Partie partie) => partie.EtatNuit.VictimeLoups is null
         ? Enumerable.Empty<Joueur>()
-        : partie.Vivants.Where(j => j.Role is LoupGarouNoir { InfectionDisponible: true });
+        : partie.Vivants.Where(j => j.Pouvoir is LoupGarouNoir { InfectionDisponible: true });
 
     public override void Debuter(Partie partie)
     {
@@ -33,7 +33,7 @@ internal sealed class EtapeLoupNoir : EtapeNuit
     {
         if (action == ActionType.Infecter)
         {
-            ((LoupGarouNoir)joueur.Role!).UtiliserInfection();
+            ((LoupGarouNoir)joueur.Pouvoir!).UtiliserInfection();
             partie.EtatNuit.VictimeInfectee = true;
             partie.JournaliserPrive(joueur, $"Vous infectez {partie.EtatNuit.VictimeLoups!.Nom}.");
         }

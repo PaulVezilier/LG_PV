@@ -10,7 +10,7 @@ internal sealed class EtapeCupidon : EtapeNuit
     public override string Consigne => "Cliquez sur les deux joueurs à unir";
 
     public override IEnumerable<Joueur> Acteurs(Partie partie) => partie.NumeroTour == 1
-        ? partie.Vivants.Where(j => j.Role is Cupidon)
+        ? partie.VivantsAvec<Cupidon>()
         : Enumerable.Empty<Joueur>();
 
     public override IReadOnlyList<ActionDisponible> ActionsDisponibles(Partie partie, Joueur joueur)

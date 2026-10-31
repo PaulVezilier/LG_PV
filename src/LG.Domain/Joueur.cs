@@ -13,8 +13,11 @@ public sealed class Joueur
     public string Id { get; }
     public string Nom { get; }
 
-    /// <summary>Rôle attribué au lancement de la partie (null dans le lobby). Peut changer : voir Héritier.</summary>
+    /// <summary>Rôle attribué au lancement de la partie (null dans le lobby). C'est l'identité du joueur : elle ne change jamais.</summary>
     public Role? Role { get; internal set; }
+
+    /// <summary>Rôle dont le joueur utilise les pouvoirs : son rôle, ou celui dont un Héritier a hérité.</summary>
+    public Role? Pouvoir => Role?.Pouvoir;
 
     /// <summary>Carte reçue au lancement, même si le rôle a changé depuis (Héritier) : sert au récapitulatif des rôles.</summary>
     public RoleId? RoleInitial { get; internal set; }

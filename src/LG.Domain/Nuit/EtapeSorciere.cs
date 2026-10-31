@@ -8,7 +8,7 @@ internal sealed class EtapeSorciere : EtapeNuit
 
     public override string Consigne => "Utilisez vos potions, ou cliquez sur un joueur à empoisonner";
 
-    public override IEnumerable<Joueur> Acteurs(Partie partie) => partie.Vivants.Where(j => j.Role is Sorciere { ADesPotions: true });
+    public override IEnumerable<Joueur> Acteurs(Partie partie) => partie.Vivants.Where(j => j.Pouvoir is Sorciere { ADesPotions: true });
 
     /// <summary>Une victime infectée ne mourra pas : la Sorcière ne la voit donc pas.</summary>
     private static Joueur? VictimeVisible(Partie partie) => partie.EtatNuit.VictimeInfectee ? null : partie.EtatNuit.VictimeLoups;
@@ -24,7 +24,7 @@ internal sealed class EtapeSorciere : EtapeNuit
 
     public override IReadOnlyList<ActionDisponible> ActionsDisponibles(Partie partie, Joueur joueur)
     {
-        if (joueur.Role is not Sorciere sorciere || ATermine(partie, joueur))
+        if (joueur.Pouvoir is not Sorciere sorciere || ATermine(partie, joueur))
             return [];
 
         var actions = new List<ActionDisponible>();
@@ -38,7 +38,7 @@ internal sealed class EtapeSorciere : EtapeNuit
 
     public override void Executer(Partie partie, Joueur joueur, ActionType action, Joueur? cible)
     {
-        var sorciere = (Sorciere)joueur.Role!;
+        var sorciere = (Sorciere)joueur.Pouvoir!;
         switch (action)
         {
             case ActionType.Soigner:
