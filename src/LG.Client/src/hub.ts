@@ -19,6 +19,12 @@ function assurerConnexion(): Promise<void> {
   return demarrage;
 }
 
+/** Coupe la connexion : la prochaine sera ouverte avec le cookie du compte nouvellement connecté. */
+export async function redemarrerConnexion(): Promise<void> {
+  demarrage = null;
+  await connexion.stop();
+}
+
 /** Appelle une méthode du hub. Les erreurs de jeu (HubException) remontent avec leur message lisible. */
 export async function appeler<T = void>(methode: string, ...args: unknown[]): Promise<T> {
   await assurerConnexion();

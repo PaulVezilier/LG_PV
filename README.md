@@ -4,7 +4,40 @@ Jeu de Loup-Garou multijoueur en temps réel : back-end .NET (C#, ASP.NET Core +
 
 ## Lancer le projet
 
-Prérequis : [SDK .NET 10](https://dotnet.microsoft.com/download/dotnet/10.0) et [Node.js](https://nodejs.org/) (LTS).
+Prérequis : [SDK .NET 10](https://dotnet.microsoft.com/download/dotnet/10.0), [Node.js](https://nodejs.org/) (LTS)
+et [Docker Desktop](https://www.docker.com/products/docker-desktop/) pour la base PostgreSQL.
+
+### Base de données (une seule fois)
+
+```bash
+cp .env.exemple .env
+```
+
+Remplacer les deux mots de passe dans `.env` (des valeurs longues et aléatoires, par exemple `openssl rand -hex 24`), puis :
+
+```bash
+docker compose up -d
+dotnet user-secrets set "ConnectionStrings:LG" "Host=localhost;Port=5432;Database=lg;Username=lg_app;Password=<LG_APP_PASSWORD>" --project src/LG.Web
+```
+
+Le conteneur crée l'utilisateur `lg_app`, propriétaire de la base `lg` mais sans droit d'administration, et n'écoute que sur `127.0.0.1`.
+Au démarrage, le serveur applique les migrations et recopie le catalogue (rôles, ambiances, personnages) : il n'y a rien d'autre à lancer.
+La chaîne de connexion n'est jamais dans un fichier versionné : user-secrets en développement, variable d'environnement `ConnectionStrings__LG` en production.
+
+Pour consulter la base : pgAdmin, lancé par le même `docker compose up -d`, sur http://localhost:5050.
+Se connecter avec `PGADMIN_EMAIL` / `PGADMIN_PASSWORD` (dans `.env`) ; le serveur « Loup-Garou (dev) » est déjà déclaré,
+son mot de passe est `LG_APP_PASSWORD`. Les tables sont sous Schemas › public › Tables (clic droit › View/Edit Data pour les lignes,
+clic droit sur la base › ERD For Database pour le schéma).
+
+Après une modification des entités (`src/LG.Data`), créer une migration :
+
+```bash
+dotnet ef migrations add <NomDeLaMigration> -p src/LG.Data -s src/LG.Web -o Migrations
+```
+
+(`dotnet tool restore` installe l'outil `dotnet ef` déclaré dans `dotnet-tools.json`.)
+
+### Serveur et front
 
 **Pour jouer** (le serveur .NET sert le front compilé) :
 
@@ -19,10 +52,10 @@ dotnet run --project src/LG.Web
 Puis ouvrir http://localhost:5080. `npm run build` écrit le front dans `src/LG.Web/wwwroot` : à refaire après chaque modification du front.
 
 **Pour développer le front** (rechargement à chaud) : lancer le serveur .NET comme ci-dessus, puis dans un second terminal
-`npm run dev` depuis `src/LG.Client`, et ouvrir http://localhost:5173. Vite relaie le hub `/hub` vers le serveur .NET.
+`npm run dev` depuis `src/LG.Client`, et ouvrir http://localhost:5173. Vite relaie le hub `/hub` et l'API `/api` vers le serveur .NET.
 
-Pour jouer seul en test, ouvrir plusieurs **onglets** : chaque onglet garde son pseudo et sa session dans le `sessionStorage`,
-c'est donc un joueur différent.
+Pour jouer seul en test, il faut plusieurs comptes connectés en même temps : la session est un cookie, partagé par tous les onglets
+d'un même navigateur. Utiliser une fenêtre de navigation privée par joueur, ou plusieurs profils de navigateur.
 
 Tests :
 
@@ -40,15 +73,20 @@ src/
     Roles/              Une classe par rôle (nom, camp, état de son pouvoir)
     Nuit/               Une classe par étape de la nuit (Garde → Voyante → Loups → Loup Noir → Sorcière)
     Vues/VuePartie.cs   Ce qu'un joueur a le droit de voir (seul objet envoyé au navigateur)
+  LG.Data/              Base PostgreSQL (EF Core) : entités, LgDbContext, catalogue, migrations
   LG.Web/
-    PartieHub.cs        Hub SignalR : salon / créer / rejoindre / quitter / agir / chatter
-    GestionnaireParties Parties et sessions en mémoire, résumés pour le salon
+    Program.cs          Configuration : base, comptes (Identity), limites de débit, hub
+    Comptes.cs          API /api/compte : inscription, connexion, déconnexion, moi
+    PartieHub.cs        Hub SignalR (comptes connectés seulement) : salon / créer / rejoindre / quitter / agir / chatter
+    GestionnaireParties Parties en mémoire, compte de chaque joueur, résumés pour le salon
     Diffuseur.cs        Envoie à chaque joueur sa propre vue, et la liste des parties au salon quand elle change
+    Archiviste.cs       Enregistre en base chaque partie, ses participants et son journal
+    EntetesDeSecurite   En-têtes HTTP (CSP, anti-iframe, nosniff)
     HorlogeParties.cs   Fait avancer les phases quand le temps est écoulé
     wwwroot/            Front compilé (généré, ne pas modifier à la main)
   LG.Client/            Front React
     src/hub.ts          Connexion SignalR unique
-    src/stores/         Zustand : compte (pseudo) et jeu (session, VuePartie, liste des parties)
+    src/stores/         Zustand : compte (utilisateur connecté) et jeu (session, VuePartie, liste des parties)
     src/pages/          Connexion, Salon, Partie
     src/components/     Lobby (table, décompte, zoom), Village (place du village), Bandeau, Chat, PanneauDroit…
     src/village.ts      Décors, personnages et emplacements tirés des maquettes
@@ -64,6 +102,31 @@ Principes :
 - **Le serveur fait autorité.** Le navigateur ne reçoit que sa `VuePartie` (jamais les rôles cachés) et n'envoie que des actions (`Agir(type, cible)`). `Partie` vérifie que l'action est proposée au joueur et que la cible est autorisée avant de l'exécuter.
 - **Rôles et étapes de nuit sont séparés.** Un rôle (`Roles/`) porte l'identité et l'état de son pouvoir (potions, dernière protection…). Une étape (`Nuit/`) orchestre le moment où ce pouvoir s'utilise. Une Voyante infectée participe ainsi à la fois à l'étape Voyante et à l'étape Loups.
 - **Le domaine est testable sans attendre** : l'heure est injectée (`TimeProvider`) ainsi que le hasard (`Random`).
+- **La partie vit en mémoire, la base garde l'historique.** Après chaque changement, l'`Archiviste` écrit ce qui est nouveau (partie, participants au lancement et en fin de partie, lignes du journal). Une panne de la base est journalisée sans interrompre le jeu. Au redémarrage, les parties restées ouvertes en base sont marquées « Abandonnee ».
+
+## Base de données
+
+Tables (noms en snake_case) :
+
+| Table | Contenu |
+|---|---|
+| `comptes` (+ `comptes_claims`, `comptes_connexions_externes`, `comptes_jetons`) | Comptes ASP.NET Core Identity : pseudo (`user_name`), e-mail, hachage du mot de passe, verrouillage, date d'inscription, skin choisi |
+| `roles` | Catalogue des rôles, identifiés par leur nom de code (`Sorciere`) : nom, camp, description, actif |
+| `ambiances` | Classique, Halloween, Hiver |
+| `skins` | Les personnages (code, nom, fichier SVG, ambiance éventuelle, gratuit, actif) |
+| `skins_possedes` | Skins débloqués par chaque compte |
+| `parties` | Une ligne par partie : code, hôte, ambiance, statut (Lobby, EnCours, Terminee, Abandonnee), dates, nombre de tours, camp vainqueur |
+| `participants` | Joueurs d'une partie lancée : siège, skin, carte reçue, rôle révélé (« Héritier (Sorcière) »), camp final, survivant, vainqueur |
+| `evenements_partie` | Le journal : numéro, date, tour, phase, canal, texte, auteur, destinataires des messages privés |
+
+Sécurité :
+
+- Mots de passe hachés par Identity (PBKDF2), 10 caractères minimum dont un chiffre ; compte bloqué 5 minutes après 5 échecs.
+- Inscription et connexion limitées à 10 essais par minute et par adresse IP.
+- Session par cookie `HttpOnly`, `SameSite=Strict` (pas de CSRF possible depuis un autre site), `Secure` hors développement.
+- Le message d'échec de connexion ne dit pas si le pseudo existe.
+- Requêtes SQL toujours paramétrées (EF Core).
+
 
 ### Ajouter un rôle
 
@@ -98,7 +161,7 @@ Principes :
 
 ## Interface
 
-- **Connexion** : un pseudo suffit pour l'instant ; le champ mot de passe est désactivé en attendant la base de données.
+- **Connexion** : onglets Connexion (pseudo ou e-mail, mot de passe, « Rester connecté ») et Inscription (pseudo, e-mail, mot de passe). Le pseudo du compte est celui affiché en jeu.
 - **Salon** : liste publique, mise à jour en direct, des parties en attente (rejoignables d'un clic) et en cours. Un lien `/partie/CODE` fait aussi rejoindre directement.
 - **Lobby** : une table ronde à 16 places ; chaque joueur y est représenté par un des 16 personnages dessinés (le n-ième arrivé prend le n-ième personnage), l'hôte porte une couronne. Une place libre ou le bouton « Inviter » copie le lien de la partie. Sur la table, « Rôles » ouvre la composition (modifiable par l'hôte) et « Ambiance » fait passer l'hôte de Classique à Halloween puis Hiver (le décor change pour tout le monde).
 - **Lancement** : « Lancer la partie » démarre, côté serveur, un décompte de 3 s (phase `Lancement`, `ParametresPartie.DureeLancement`) affiché chez tous les joueurs ; à zéro, la caméra zoome sur le disque central de la table, puis le village apparaît en plein jour et la nuit tombe aussitôt. Les rôles sont distribués à la fin du décompte.
@@ -109,7 +172,11 @@ Principes :
 
 ## Limites connues / prochaines étapes
 
-- Les parties ne sont qu'en mémoire (perdues au redémarrage) et les parties terminées ne sont jamais supprimées (elles disparaissent seulement du salon).
+- Les parties en cours ne sont qu'en mémoire : un redémarrage les interrompt (elles restent dans l'historique, statut « Abandonnee »). Les parties terminées ne sont jamais retirées de la mémoire (elles disparaissent seulement du salon).
+- Mise en ligne à prévoir : HTTPS (Caddy devant l'application, certificat Let's Encrypt automatique), en-tête HSTS, et `ForwardedHeaders` pour que la limite de débit voie la vraie adresse IP des joueurs.
+- Comptes : pas encore de confirmation d'e-mail ni de mot de passe oublié (il faut un service d'envoi d'e-mails), ni de suppression de compte depuis le site.
+- RGPD : le journal conserve les messages de chat, y compris ceux de la meute et des morts. Durée de conservation à fixer, puis purge automatique.
+- Les tables `skins`, `skins_possedes` et `comptes.skin_id` existent mais ne sont pas encore utilisées par le jeu.
 - Pas de mode spectateur : une partie en cours est visible dans le salon mais pas rejoignable.
 - Un joueur qui ferme son onglet dans la salle d'attente y reste (seul le bouton « Quitter » le retire).
 - Sauter l'étape d'un rôle mort raccourcit la nuit, ce qui peut trahir la mort d'un rôle : à remplacer par une fausse attente.

@@ -7,3 +7,6 @@ TestResults/
 node_modules/
 # Généré par `npm run build` dans src/LG.Client
 src/LG.Web/wwwroot/
+
+# Mots de passe locaux (voir .env.exemple)
+.env

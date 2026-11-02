@@ -73,7 +73,7 @@ public sealed record VuePartie(
         var journal = partie.Journal
             .Where(e => e.EstVisiblePar(moi, partie.Phase))
             .TakeLast(TailleJournal)
-            .Select(e => new VueEvenement(e.Numero, e.Date, e.Canal, e.Texte, e.Auteur))
+            .Select(e => new VueEvenement(e.Numero, e.Date, e.Canal, e.Texte, e.Auteur?.Nom))
             .ToList();
 
         var narration = partie.Phase switch

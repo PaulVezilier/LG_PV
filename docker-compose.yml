@@ -1,0 +1,38 @@
+# Base de données de développement : `docker compose up -d` à la racine du dépôt.
+# Les mots de passe viennent du fichier .env (non versionné, voir .env.exemple).
+services:
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Renseignez POSTGRES_PASSWORD dans .env}
+      LG_APP_PASSWORD: ${LG_APP_PASSWORD:?Renseignez LG_APP_PASSWORD dans .env}
+    # Accessible uniquement depuis ce poste, jamais depuis le réseau.
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - donnees-postgres:/var/lib/postgresql
+      - ./docker/postgres:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 10
+
+  # Interface web pour consulter la base : http://localhost:5050 (identifiants dans .env).
+  pgadmin:
+    image: dpage/pgadmin4:9
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:?Renseignez PGADMIN_EMAIL dans .env}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:?Renseignez PGADMIN_PASSWORD dans .env}
+    ports:
+      - "127.0.0.1:5050:80"
+    volumes:
+      - donnees-pgadmin:/var/lib/pgadmin
+      - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
+
+volumes:
+  donnees-postgres:
+  donnees-pgadmin:

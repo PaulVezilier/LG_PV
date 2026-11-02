@@ -8,22 +8,28 @@ import type { ResumePartie } from "../types";
 
 /** Salon public : toutes les parties en attente ou en cours, rejoignables d'un clic. */
 export function PageSalon() {
-  const { pseudo, deconnecter } = useCompte();
-  const { parties, session, observerSalon, quitterSalon, creerPartie } = useJeu();
+  const { utilisateur, deconnecter } = useCompte();
+  const { parties, session, observerSalon, quitterSalon, chercherPartieEnCours, creerPartie, oublier } = useJeu();
   const [code, setCode] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
     observerSalon();
+    chercherPartieEnCours();
     return () => { quitterSalon(); };
-  }, [observerSalon, quitterSalon]);
+  }, [observerSalon, quitterSalon, chercherPartieEnCours]);
 
   const enAttente = parties.filter((p) => p.phase === "Lobby");
   const enCours = parties.filter((p) => p.phase !== "Lobby");
 
   async function creer() {
-    const id = await creerPartie(pseudo!);
+    const id = await creerPartie();
     if (id) navigate(`/partie/${id}`);
+  }
+
+  async function seDeconnecter() {
+    oublier();
+    await deconnecter();
   }
 
   function rejoindreParCode(e: FormEvent) {
@@ -36,8 +42,8 @@ export function PageSalon() {
       <header className="lg-head">
         <Marque />
         <div className="salon-compte">
-          <span className="discret">Connecté en tant que <strong>{pseudo}</strong></span>
-          <button className="lg-link" onClick={deconnecter}>Se déconnecter</button>
+          <span className="discret">Connecté en tant que <strong>{utilisateur!.pseudo}</strong></span>
+          <button className="lg-link" onClick={seDeconnecter}>Se déconnecter</button>
         </div>
       </header>
 

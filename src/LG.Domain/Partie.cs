@@ -286,7 +286,7 @@ public sealed class Partie
 
         var canal = CanalDeDiscussion(joueur)
             ?? throw new ActionInvalideException("Le village dort : vous ne pouvez pas parler la nuit.");
-        Journaliser(canal, texte, joueur.Nom, []);
+        Journaliser(canal, texte, joueur, []);
 
         if (canal == Canal.Public && Phase == Phase.Jour)
             joueur.Pouvoir!.ApresMessageDuJour(this, joueur, texte);
@@ -537,6 +537,6 @@ public sealed class Partie
 
     internal void JournaliserPrive(Joueur destinataire, string texte) => Journaliser(Canal.Prive, texte, null, [destinataire.Id]);
 
-    private void Journaliser(Canal canal, string texte, string? auteur, IReadOnlyCollection<string> destinataires)
-        => _journal.Add(new EvenementJournal(_journal.Count + 1, _horloge.GetUtcNow(), canal, texte, auteur, destinataires, Phase == Phase.Nuit));
+    private void Journaliser(Canal canal, string texte, Joueur? auteur, IReadOnlyCollection<string> destinataires)
+        => _journal.Add(new EvenementJournal(_journal.Count + 1, _horloge.GetUtcNow(), NumeroTour, Phase, canal, texte, auteur, destinataires));
 }

@@ -5,7 +5,6 @@ import { Marque } from "../components/Icones";
 import { DUREE_ZOOM, Lobby } from "../components/Lobby";
 import { PanneauDroit } from "../components/PanneauDroit";
 import { Village } from "../components/Village";
-import { useCompte } from "../stores/compte";
 import { useJeu } from "../stores/jeu";
 import type { ActionType } from "../types";
 
@@ -17,7 +16,6 @@ const DUREE_JOUR_INITIAL = 1600;
 
 export function PagePartie() {
   const code = useParams().code!.toUpperCase();
-  const pseudo = useCompte((s) => s.pseudo)!;
   const { etat, entrer, quitterPartie } = useJeu();
   const navigate = useNavigate();
 
@@ -28,8 +26,8 @@ export function PagePartie() {
   const aVuLeLobby = useRef(false);
 
   useEffect(() => {
-    entrer(code, pseudo).then((ok) => { if (!ok) navigate("/", { replace: true }); });
-  }, [code, pseudo, entrer, navigate]);
+    entrer(code).then((ok) => { if (!ok) navigate("/", { replace: true }); });
+  }, [code, entrer, navigate]);
 
   const enLobby = etat?.phase === "Lobby" || etat?.phase === "Lancement";
 

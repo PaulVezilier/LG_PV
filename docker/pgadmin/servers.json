@@ -1,0 +1,13 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Loup-Garou (dev)",
+      "Group": "Serveurs",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "lg",
+      "Username": "lg_app",
+      "SSLMode": "prefer"
+    }
+  }
+}

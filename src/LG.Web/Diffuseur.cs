@@ -9,8 +9,9 @@ namespace LG.Web;
 /// <summary>
 /// Envoie à chaque joueur sa propre vue de la partie (chaque joueur a son groupe SignalR),
 /// et la liste des parties aux visiteurs du salon quand elle change.
+/// Tout changement d'une partie passe par ici : c'est aussi le moment où elle est enregistrée en base.
 /// </summary>
-public sealed class Diffuseur(IHubContext<PartieHub> hub, GestionnaireParties gestionnaire)
+public sealed class Diffuseur(IHubContext<PartieHub> hub, GestionnaireParties gestionnaire, Archiviste archiviste)
 {
     public const string GroupeSalon = "salon";
 
@@ -37,6 +38,7 @@ public sealed class Diffuseur(IHubContext<PartieHub> hub, GestionnaireParties ge
         {
             verrou.Release();
         }
+        await archiviste.EnregistrerAsync(partie);
         await DiffuserSalonAsync();
     }
 

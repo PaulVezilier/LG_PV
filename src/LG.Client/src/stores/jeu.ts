@@ -1,10 +1,12 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { HubConnectionState } from "@microsoft/signalr";
 import { appeler, connexion } from "../hub";
 import type { ActionType, Ambiance, ResumePartie, RoleId, Session, VuePartie } from "../types";
 
 // L'état de la partie vient entièrement du serveur (VuePartie) : ce store ne fait que le stocker
-// et exposer les appels au hub. Seule la session (jeton de joueur) est conservée entre deux rechargements.
+// et exposer les appels au hub. Seule la session (la partie où l'on joue) est conservée entre deux rechargements ;
+// le serveur reconnaît le joueur à son compte.
 
 interface JeuState {
   session: Session | null;
@@ -14,10 +16,14 @@ interface JeuState {
 
   observerSalon: () => Promise<void>;
   quitterSalon: () => Promise<void>;
+  /** Partie non terminée où l'on a une place, d'après le serveur (utile dans un nouvel onglet). */
+  chercherPartieEnCours: () => Promise<void>;
   /** Crée une partie et renvoie son code (null en cas d'erreur). */
-  creerPartie: (pseudo: string) => Promise<string | null>;
-  /** Reprend la partie si on y a déjà une session, sinon la rejoint. */
-  entrer: (code: string, pseudo: string) => Promise<boolean>;
+  creerPartie: () => Promise<string | null>;
+  /** Rejoint la partie, ou y reprend sa place si on y est déjà. */
+  entrer: (code: string) => Promise<boolean>;
+  /** Oublie la partie suivie (déconnexion). */
+  oublier: () => void;
   quitterPartie: () => Promise<void>;
   demarrer: () => Promise<void>;
   definirComposition: (roles: RoleId[] | null) => Promise<void>;
@@ -70,35 +76,33 @@ export const useJeu = create<JeuState>()(
 
         quitterSalon: async () => {
           salonObserve = false;
+          // Après une déconnexion, la connexion est coupée : inutile (et refusé) de la rouvrir pour ça.
+          if (connexion.state !== HubConnectionState.Connected) return;
           await tenter(() => appeler("QuitterSalon"));
         },
 
-        creerPartie: async (pseudo) => {
+        chercherPartieEnCours: async () => {
+          const session = await tenter(() => appeler<Session | null>("PartieEnCours"));
+          set({ session });
+        },
+
+        creerPartie: async () => {
           await quitterSessionActuelle();
-          const session = await tenter(() => appeler<Session>("CreerPartie", pseudo));
+          const session = await tenter(() => appeler<Session>("CreerPartie"));
           if (!session) return null;
           suivre(session);
           return session.partieId;
         },
 
-        entrer: (code, pseudo) => {
+        entrer: (code) => {
           const enCours = entreesEnCours.get(code);
           if (enCours) return enCours;
 
           const entree = (async () => {
-            const actuelle = get().session;
-            if (actuelle?.partieId === code) {
-              const reprise = await tenter(() => appeler<Session | null>("Reprendre", actuelle.jeton));
-              if (reprise) {
-                suivre(reprise);
-                return true;
-              }
-              set({ session: null, etat: null, erreur: "Cette partie n'existe plus." });
-              return false;
-            }
-            await quitterSessionActuelle();
-            const session = await tenter(() => appeler<Session>("RejoindrePartie", code, pseudo));
+            if (get().session?.partieId !== code) await quitterSessionActuelle();
+            const session = await tenter(() => appeler<Session>("RejoindrePartie", code));
             if (session) suivre(session);
+            else set({ session: null, etat: null });
             return !!session;
           })();
           entreesEnCours.set(code, entree);
@@ -119,6 +123,7 @@ export const useJeu = create<JeuState>()(
         definirAmbiance: async (ambiance) => { await tenter(() => appeler("DefinirAmbiance", ambiance)); },
         agir: async (type, cibleId = null) => { await tenter(() => appeler("Agir", type, cibleId)); },
         envoyerMessage: async (texte) => { await tenter(() => appeler("EnvoyerMessage", texte)); },
+        oublier: () => set({ session: null, etat: null, parties: [] }),
         signalerErreur: (erreur) => set({ erreur }),
       };
     },
@@ -140,6 +145,6 @@ connexion.on("parties", (parties: ResumePartie[]) => useJeu.setState({ parties }
 
 connexion.onreconnected(async () => {
   const { session, observerSalon } = useJeu.getState();
-  if (session) await appeler("Reprendre", session.jeton).catch(() => undefined);
+  if (session) await appeler("RejoindrePartie", session.partieId).catch(() => undefined);
   if (salonObserve) await observerSalon();
 });

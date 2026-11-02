@@ -1,9 +1,14 @@
 using LG.Domain;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
 namespace LG.Web;
 
-/// <summary>Point d'entrée temps réel du navigateur. Toute la logique de jeu est dans LG.Domain.</summary>
+/// <summary>
+/// Point d'entrée temps réel du navigateur, réservé aux comptes connectés (cookie de session).
+/// Toute la logique de jeu est dans LG.Domain.
+/// </summary>
+[Authorize]
 public sealed class PartieHub(GestionnaireParties gestionnaire, Diffuseur diffuseur) : Hub
 {
     private const string CleSession = "session";
@@ -17,26 +22,21 @@ public sealed class PartieHub(GestionnaireParties gestionnaire, Diffuseur diffus
 
     public Task QuitterSalon() => Groups.RemoveFromGroupAsync(Context.ConnectionId, Diffuseur.GroupeSalon);
 
-    public async Task<Session> CreerPartie(string nom)
+    /// <summary>Partie non terminée où le joueur a une place (null s'il n'en a pas).</summary>
+    public Session? PartieEnCours() => gestionnaire.PartieEnCours(CompteId);
+
+    public async Task<Session> CreerPartie()
     {
-        var session = Proteger(() => gestionnaire.CreerPartie(nom));
+        var session = Proteger(() => gestionnaire.CreerPartie(CompteId, Pseudo));
         await Associer(session);
         return session;
     }
 
-    public async Task<Session> RejoindrePartie(string code, string nom)
+    /// <summary>Rejoint une partie, ou y reprend sa place (rafraîchissement de page, reconnexion).</summary>
+    public async Task<Session> RejoindrePartie(string code)
     {
-        var session = Proteger(() => gestionnaire.RejoindrePartie(code, nom));
+        var session = Proteger(() => gestionnaire.RejoindrePartie(code, CompteId, Pseudo));
         await Associer(session);
-        return session;
-    }
-
-    /// <summary>Après un rafraîchissement de page ou une reconnexion.</summary>
-    public async Task<Session?> Reprendre(string jeton)
-    {
-        var session = gestionnaire.TrouverSession(jeton);
-        if (session is not null)
-            await Associer(session);
         return session;
     }
 
@@ -50,7 +50,7 @@ public sealed class PartieHub(GestionnaireParties gestionnaire, Diffuseur diffus
         var partie = gestionnaire.Trouver(session.PartieId);
         if (partie is null || partie.Phase != Phase.Lobby)
             return;
-        Proteger(() => { gestionnaire.QuitterPartie(session); return true; });
+        Proteger(() => { gestionnaire.QuitterPartie(session, CompteId); return true; });
         await diffuseur.DiffuserAsync(partie);
     }
 
@@ -64,6 +64,11 @@ public sealed class PartieHub(GestionnaireParties gestionnaire, Diffuseur diffus
     public Task Agir(ActionType action, string? cibleId) => ModifierPartie((partie, session) => partie.Agir(session.JoueurId, action, cibleId));
 
     public Task EnvoyerMessage(string texte) => ModifierPartie((partie, session) => partie.EnvoyerMessage(session.JoueurId, texte));
+
+    /// <summary>Le compte connecté ; [Authorize] garantit qu'il existe.</summary>
+    private Guid CompteId => Guid.Parse(Context.UserIdentifier!);
+
+    private string Pseudo => Context.User!.Identity!.Name!;
 
     private Session? SessionCourante()
         => Context.Items.TryGetValue(CleSession, out var valeur) ? valeur as Session : null;

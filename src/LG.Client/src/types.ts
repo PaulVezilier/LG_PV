@@ -9,8 +9,8 @@ export type ActionType =
   | "Unir" | "Heriter" | "CoupDEtat" | "Tirer" | "Designer" | "Passer";
 export type RoleId = string;
 
+/** Place du joueur dans une partie. */
 export interface Session {
-  jeton: string;
   partieId: string;
   joueurId: string;
 }

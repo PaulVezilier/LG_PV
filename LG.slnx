@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/LG.Data/LG.Data.csproj" />
     <Project Path="src/LG.Domain/LG.Domain.csproj" />
     <Project Path="src/LG.Web/LG.Web.csproj" />
   </Folder>

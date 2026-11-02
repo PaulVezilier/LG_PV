@@ -213,6 +213,9 @@ button:disabled { cursor: default; }
 .sous-titre { margin: -6px 0 6px; color: var(--parchemin-doux); font-style: italic; font-size: 1.1rem; }
 .champ { display: flex; flex-direction: column; gap: 6px; text-align: left; font-size: 0.95rem; color: var(--parchemin-doux); }
 .champ em { color: var(--or-clair); font-style: normal; }
+.carte-connexion .lg-onglets { justify-content: center; }
+.case-a-cocher { display: flex; align-items: center; gap: 8px; font-size: 0.95rem; color: var(--parchemin-doux); }
+.erreur-formulaire { margin: 0; color: var(--sang-clair); font-size: 0.95rem; }
 
 /* ------------------------------------------------------------ Salon */
 
