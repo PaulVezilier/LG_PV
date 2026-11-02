@@ -50,8 +50,11 @@ src/
     src/hub.ts          Connexion SignalR unique
     src/stores/         Zustand : compte (pseudo) et jeu (session, VuePartie, liste des parties)
     src/pages/          Connexion, Salon, Partie
-    src/components/     Bandeau (consigne), Plateau (joueurs en cercle + chat), PanneauDroit (rôle + récapitulatif)
-    src/styles.css      Charte « Le Grimoire » (couleurs en variables CSS en tête de fichier)
+    src/components/     Lobby (table, décompte, zoom), Village (place du village), Bandeau, Chat, PanneauDroit…
+    src/village.ts      Décors, personnages et emplacements tirés des maquettes
+    src/styles.css      Charte des maquettes (couleurs en variables CSS en tête de fichier)
+    public/             Décors (6 plateaux, 3 tables de lobby) et 16 personnages en SVG
+    outils/             importer-decors.mjs : régénère public/ depuis les SVG de la direction artistique
 tests/
   LG.Domain.Tests/      Tests xUnit des règles
 ```
@@ -97,8 +100,12 @@ Principes :
 
 - **Connexion** : un pseudo suffit pour l'instant ; le champ mot de passe est désactivé en attendant la base de données.
 - **Salon** : liste publique, mise à jour en direct, des parties en attente (rejoignables d'un clic) et en cours. Un lien `/partie/CODE` fait aussi rejoindre directement.
-- **Partie** : les joueurs sont assis en cercle (vous en bas). Le bandeau du haut dit à tous ce qui se passe (« Le Garde doit protéger quelqu'un ») et à l'acteur ce qu'il doit faire ; il suffit de cliquer sur le cadre d'un joueur. Quand plusieurs actions ciblées sont possibles (vote / coup d'État), des boutons dans le bandeau choisissent laquelle. Le chat flotte en transparence au centre de la table, la saisie est en bas.
-- **Panneau de droite** : votre rôle, puis les rôles en jeu (« Loup-Garou x2 », puis « x1 » quand l'un meurt, grisé à zéro). Le décompte suit la carte reçue au lancement, donc un Héritier qui change de rôle ne le fausse pas.
+- **Lobby** : une table ronde à 16 places ; chaque joueur y est représenté par un des 16 personnages dessinés (le n-ième arrivé prend le n-ième personnage), l'hôte porte une couronne. Une place libre ou le bouton « Inviter » copie le lien de la partie. Sur la table, « Rôles » ouvre la composition (modifiable par l'hôte) et « Ambiance » fait passer l'hôte de Classique à Halloween puis Hiver (le décor change pour tout le monde).
+- **Lancement** : « Lancer la partie » démarre, côté serveur, un décompte de 3 s (phase `Lancement`, `ParametresPartie.DureeLancement`) affiché chez tous les joueurs ; à zéro, la caméra zoome sur le disque central de la table, puis le village apparaît en plein jour et la nuit tombe aussitôt. Les rôles sont distribués à la fin du décompte.
+- **Partie** : la place du village (décor jour ou nuit, en fondu ; feux et fumée animés), les joueurs debout avec leur pseudo au-dessus de la tête. Le bandeau dit à tous ce qui se passe (« Le Garde doit protéger quelqu'un ») et à l'acteur ce qu'il doit faire ; il suffit de cliquer sur un villageois (ceux qu'on peut cibler s'illuminent). Le vote du joueur est marqué d'un anneau doré, les voix reçues d'une pastille rouge. Quand plusieurs actions ciblées sont possibles (vote / coup d'État), des boutons sous le village choisissent laquelle.
+- **Colonne de droite** : le chat sur toute la hauteur (onglet Village, Meute ou Morts selon le moment). Un second onglet « Mon rôle » donne la description de votre rôle et les rôles en jeu (« Loup-Garou x2 », puis « x1 » quand l'un meurt, grisé à zéro ; le décompte suit la carte reçue au lancement, donc un Héritier ne le fausse pas) ; un point doré signale les messages arrivés pendant ce temps.
+- **Décors** : les SVG de la direction artistique contiennent 16 villageois dessinés en dur ; `outils/importer-decors.mjs` les retire (pour y placer les vrais joueurs), anime les flammes, les braises et la fumée, extrait la table du lobby de sa maquette et copie les personnages dans `public/`. À relancer si les SVG changent :
+  `node outils/importer-decors.mjs <dossier loup-garou-svg> <Lobby.dc.html>` depuis `src/LG.Client`.
 
 ## Limites connues / prochaines étapes
 
@@ -108,4 +115,7 @@ Principes :
 - Sauter l'étape d'un rôle mort raccourcit la nuit, ce qui peut trahir la mort d'un rôle : à remplacer par une fausse attente.
 - Pas encore de départ d'un joueur, ni de vote du maire, ni de chat privé entre amoureux.
 - Rien n'empêche de mettre deux Cupidons ou deux Dictateurs dans la composition.
-- Le minuteur du navigateur suppose que son horloge est à l'heure du serveur.
+- Le minuteur et le décompte du navigateur supposent que son horloge est à l'heure du serveur.
+- La maquette « Personnalisation » (choisir peau, coiffure, tenue de son villageois) n'est pas encore branchée : chaque joueur reçoit un des 16 personnages selon son ordre d'arrivée, et un départ dans le lobby décale ceux des suivants.
+- Boutons de la maquette du lobby pas encore implémentés : Modes, Événements, Paramètres, « Prêt », partie privée/publique.
+- Sur téléphone, le village garde son cadrage paysage (la maquette prévoit un cadrage portrait qui demanderait un décor plus haut).

@@ -65,6 +65,8 @@ public sealed class Partie
     public IReadOnlyList<RoleId>? CompositionChoisie { get; private set; }
     public IReadOnlyList<RoleId> CompositionPrevue => CompositionChoisie ?? CompositionRoles.Automatique(_joueurs.Count);
 
+    public Ambiance Ambiance { get; private set; } = Ambiance.Classique;
+
     internal Random Aleatoire { get; }
     internal EtatNuit EtatNuit { get; private set; } = new();
 
@@ -130,6 +132,17 @@ public sealed class Partie
         CompositionChoisie = roles?.ToList();
     }
 
+    public void DefinirAmbiance(string demandeurId, Ambiance ambiance)
+    {
+        if (Phase != Phase.Lobby)
+            throw new ActionInvalideException("La partie a déjà commencé.");
+        if (demandeurId != HoteId)
+            throw new ActionInvalideException("Seul l'hôte peut choisir l'ambiance.");
+        if (!Enum.IsDefined(ambiance))
+            throw new ActionInvalideException("Ambiance inconnue.");
+        Ambiance = ambiance;
+    }
+
     /// <summary>Pourquoi la partie ne peut pas encore être lancée (null si elle le peut).</summary>
     public string? ObstacleAuDemarrage()
     {
@@ -155,6 +168,19 @@ public sealed class Partie
         if (ObstacleAuDemarrage() is { } obstacle)
             throw new ActionInvalideException(obstacle);
 
+        // Décompte commun à tous les joueurs ; plus personne ne peut rejoindre ni quitter la table.
+        // La distribution des rôles a lieu à la fin du décompte (voir Actualiser).
+        if (Parametres.DureeLancement > TimeSpan.Zero)
+        {
+            Phase = Phase.Lancement;
+            FinPhase = _horloge.GetUtcNow() + Parametres.DureeLancement;
+            return;
+        }
+        Lancer();
+    }
+
+    private void Lancer()
+    {
         var roles = CompositionPrevue.Select(FabriqueRoles.Creer).ToArray();
         Aleatoire.Shuffle(roles);
         for (var i = 0; i < roles.Length; i++)
@@ -241,7 +267,7 @@ public sealed class Partie
 
     private Canal? CanalDeDiscussion(Joueur joueur) => (Phase, joueur) switch
     {
-        (Phase.Lobby or Phase.Terminee, _) => Canal.Public,
+        (Phase.Lobby or Phase.Lancement or Phase.Terminee, _) => Canal.Public,
         (_, { EstVivant: false }) => Canal.Morts,
         (Phase.Nuit, { EstLoup: true }) => Canal.Loups,
         (Phase.Nuit, { Pouvoir.EntendLesMortsLaNuit: true }) => Canal.Morts,
@@ -275,6 +301,9 @@ public sealed class Partie
 
         switch (Phase)
         {
+            case Phase.Lancement:
+                Lancer();
+                break;
             case Phase.Nuit:
                 PasserEtapeSuivante();
                 break;

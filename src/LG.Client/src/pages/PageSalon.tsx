@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router";
+import { Marque } from "../components/Icones";
 import { titrePhase } from "../roles";
 import { useCompte } from "../stores/compte";
 import { useJeu } from "../stores/jeu";
@@ -31,12 +32,13 @@ export function PageSalon() {
   }
 
   return (
-    <div className="page-salon">
-      <header className="barre">
-        <span className="marque">Loup-Garou</span>
-        <span className="barre-espace" />
-        <span className="discret">Connecté en tant que <strong>{pseudo}</strong></span>
-        <button className="bouton-discret" onClick={deconnecter}>Se déconnecter</button>
+    <div className="lg-root">
+      <header className="lg-head">
+        <Marque />
+        <div className="salon-compte">
+          <span className="discret">Connecté en tant que <strong>{pseudo}</strong></span>
+          <button className="lg-link" onClick={deconnecter}>Se déconnecter</button>
+        </div>
       </header>
 
       <main className="salon">

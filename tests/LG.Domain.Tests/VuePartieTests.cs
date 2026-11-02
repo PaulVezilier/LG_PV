@@ -60,6 +60,44 @@ public class VuePartieTests
     }
 
     [Fact]
+    public void Le_lancement_laisse_un_decompte_avant_la_premiere_nuit()
+    {
+        var horloge = new HorlogeFactice();
+        var parametres = new ParametresPartie { Composition = [RoleId.LoupGarou, RoleId.SimpleVillageois, RoleId.SimpleVillageois, RoleId.SimpleVillageois] };
+        var partie = new Partie("TEST", parametres, horloge, new Random(1));
+        var hote = partie.AjouterJoueur("Alice");
+        foreach (var nom in new[] { "Bob", "Chloé", "David" })
+            partie.AjouterJoueur(nom);
+
+        partie.Demarrer(hote.Id);
+
+        Assert.Equal(Phase.Lancement, partie.Phase);
+        Assert.Equal(horloge.Maintenant + parametres.DureeLancement, partie.FinPhase);
+        Assert.All(partie.Joueurs, j => Assert.Null(j.Role));
+        Assert.Throws<ActionInvalideException>(() => partie.AjouterJoueur("Ève"));
+        Assert.Throws<ActionInvalideException>(() => partie.RetirerJoueur(hote.Id));
+
+        horloge.Avancer(parametres.DureeLancement);
+        Assert.True(partie.Actualiser());
+
+        Assert.Equal(Phase.Nuit, partie.Phase);
+        Assert.All(partie.Joueurs, j => Assert.NotNull(j.Role));
+    }
+
+    [Fact]
+    public void Seul_l_hote_choisit_l_ambiance_et_tout_le_monde_la_voit()
+    {
+        var partie = new Partie("TEST");
+        var hote = partie.AjouterJoueur("Alice");
+        var invite = partie.AjouterJoueur("Bob");
+
+        Assert.Throws<ActionInvalideException>(() => partie.DefinirAmbiance(invite.Id, Ambiance.Hiver));
+        partie.DefinirAmbiance(hote.Id, Ambiance.Halloween);
+
+        Assert.Equal(Ambiance.Halloween, VuePartie.Pour(partie, invite.Id).Ambiance);
+    }
+
+    [Fact]
     public void On_ne_peut_pas_quitter_une_partie_lancee()
     {
         var t = new PartieDeTest(RoleId.LoupGarou, RoleId.SimpleVillageois, RoleId.SimpleVillageois);

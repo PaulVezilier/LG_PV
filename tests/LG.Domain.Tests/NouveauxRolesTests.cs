@@ -328,6 +328,6 @@ public class NouveauxRolesTests
 
         partie.DefinirComposition(hote.Id, [RoleId.LoupGarou, RoleId.Chasseur, RoleId.Cupidon, RoleId.Dictateur]);
         partie.Demarrer(hote.Id);
-        Assert.Equal(Phase.Nuit, partie.Phase);
+        Assert.Equal(Phase.Lancement, partie.Phase);
     }
 }

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { appeler, connexion } from "../hub";
-import type { ActionType, ResumePartie, RoleId, Session, VuePartie } from "../types";
+import type { ActionType, Ambiance, ResumePartie, RoleId, Session, VuePartie } from "../types";
 
 // L'état de la partie vient entièrement du serveur (VuePartie) : ce store ne fait que le stocker
 // et exposer les appels au hub. Seule la session (jeton de joueur) est conservée entre deux rechargements.
@@ -21,6 +21,7 @@ interface JeuState {
   quitterPartie: () => Promise<void>;
   demarrer: () => Promise<void>;
   definirComposition: (roles: RoleId[] | null) => Promise<void>;
+  definirAmbiance: (ambiance: Ambiance) => Promise<void>;
   agir: (type: ActionType, cibleId?: string | null) => Promise<void>;
   envoyerMessage: (texte: string) => Promise<void>;
   signalerErreur: (message: string | null) => void;
@@ -115,6 +116,7 @@ export const useJeu = create<JeuState>()(
 
         demarrer: async () => { await tenter(() => appeler("Demarrer")); },
         definirComposition: async (roles) => { await tenter(() => appeler("DefinirComposition", roles)); },
+        definirAmbiance: async (ambiance) => { await tenter(() => appeler("DefinirAmbiance", ambiance)); },
         agir: async (type, cibleId = null) => { await tenter(() => appeler("Agir", type, cibleId)); },
         envoyerMessage: async (texte) => { await tenter(() => appeler("EnvoyerMessage", texte)); },
         signalerErreur: (erreur) => set({ erreur }),

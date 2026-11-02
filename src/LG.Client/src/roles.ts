@@ -28,6 +28,7 @@ export const NOMS_CAMP: Record<Camp, string> = {
 export function titrePhase(phase: Phase, tour: number): string {
   switch (phase) {
     case "Lobby": return "Salle d'attente";
+    case "Lancement": return "Lancement";
     case "Nuit": return `Nuit ${tour}`;
     case "Jour": return `Jour ${tour}`;
     case "DernieresVolontes": return "Dernières volontés";

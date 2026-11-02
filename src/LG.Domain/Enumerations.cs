@@ -36,6 +36,10 @@ public enum RoleId
 public enum Phase
 {
     Lobby,
+
+    /// <summary>L'hôte a lancé la partie : décompte de quelques secondes avant la première nuit.</summary>
+    Lancement,
+
     Nuit,
     Jour,
 
@@ -43,6 +47,14 @@ public enum Phase
     DernieresVolontes,
 
     Terminee,
+}
+
+/// <summary>Décor du village, choisi par l'hôte dans le lobby.</summary>
+public enum Ambiance
+{
+    Classique,
+    Halloween,
+    Hiver,
 }
 
 /// <summary>Types d'actions qu'un joueur peut effectuer.</summary>

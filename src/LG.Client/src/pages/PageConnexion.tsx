@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router";
+import { IconeLune } from "../components/Icones";
 import { useCompte } from "../stores/compte";
 
 export function PageConnexion() {
@@ -22,7 +23,7 @@ export function PageConnexion() {
   return (
     <div className="page-connexion">
       <form className="carte carte-connexion" onSubmit={entrer}>
-        <div className="embleme" aria-hidden>🐺</div>
+        <div className="embleme"><IconeLune taille={52} /></div>
         <h1>Loup-Garou</h1>
         <p className="sous-titre">La nuit tombe sur le village…</p>
 

@@ -1,6 +1,7 @@
 // Miroir des objets envoyés par le serveur (LG.Domain/Vues/VuePartie.cs, LG.Web/GestionnaireParties.cs).
 
-export type Phase = "Lobby" | "Nuit" | "Jour" | "DernieresVolontes" | "Terminee";
+export type Phase = "Lobby" | "Lancement" | "Nuit" | "Jour" | "DernieresVolontes" | "Terminee";
+export type Ambiance = "Classique" | "Halloween" | "Hiver";
 export type Camp = "Village" | "LoupsGarous" | "Amoureux";
 export type Canal = "Public" | "Loups" | "Morts" | "Prive";
 export type ActionType =
@@ -73,6 +74,7 @@ export interface VuePartie {
   partieId: string;
   phase: Phase;
   numeroTour: number;
+  ambiance: Ambiance;
   narration: string;
   consigne: string | null;
   monVote: string | null;

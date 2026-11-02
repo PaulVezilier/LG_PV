@@ -57,6 +57,8 @@ public sealed class PartieHub(GestionnaireParties gestionnaire, Diffuseur diffus
     /// <param name="roles">Un rôle par joueur, ou null pour la composition automatique.</param>
     public Task DefinirComposition(List<RoleId>? roles) => ModifierPartie((partie, session) => partie.DefinirComposition(session.JoueurId, roles));
 
+    public Task DefinirAmbiance(Ambiance ambiance) => ModifierPartie((partie, session) => partie.DefinirAmbiance(session.JoueurId, ambiance));
+
     public Task Demarrer() => ModifierPartie((partie, session) => partie.Demarrer(session.JoueurId));
 
     public Task Agir(ActionType action, string? cibleId) => ModifierPartie((partie, session) => partie.Agir(session.JoueurId, action, cibleId));

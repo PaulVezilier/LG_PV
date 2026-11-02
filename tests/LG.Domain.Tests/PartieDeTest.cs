@@ -16,7 +16,7 @@ internal sealed class PartieDeTest
 {
     public PartieDeTest(params RoleId[] composition)
     {
-        var parametres = new ParametresPartie { Composition = composition, JoueursMinimum = 2 };
+        var parametres = new ParametresPartie { Composition = composition, JoueursMinimum = 2, DureeLancement = TimeSpan.Zero };
         Partie = new Partie("TEST", parametres, Horloge, new Random(42));
         for (var i = 0; i < composition.Length; i++)
             Partie.AjouterJoueur($"Joueur{i + 1}");

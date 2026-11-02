@@ -11,6 +11,7 @@ public sealed record VuePartie(
     string PartieId,
     Phase Phase,
     int NumeroTour,
+    Ambiance Ambiance,
     string Narration,
     string? Consigne,
     string? MonVote,
@@ -78,6 +79,7 @@ public sealed record VuePartie(
         var narration = partie.Phase switch
         {
             Phase.Lobby => "En attente des joueurs…",
+            Phase.Lancement => "La partie va commencer…",
             Phase.Nuit => etape?.Narration ?? "Le village dort…",
             Phase.Jour => "Le village débat et vote pour éliminer un suspect",
             Phase.DernieresVolontes => $"Dernières volontés de {string.Join(" et ", partie.JoueursAvecVolonte)}",
@@ -115,6 +117,7 @@ public sealed record VuePartie(
             partie.Id,
             partie.Phase,
             partie.NumeroTour,
+            partie.Ambiance,
             narration,
             consigne,
             votes.GetValueOrDefault(moi.Id),

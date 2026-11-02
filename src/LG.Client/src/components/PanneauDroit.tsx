@@ -1,89 +1,65 @@
-import { icone, NOMS_CAMP } from "../roles";
-import { useJeu } from "../stores/jeu";
-import type { RoleId, VuePartie, VueRole } from "../types";
-import { Infobulle } from "./Infobulle";
+import { useEffect, useState } from "react";
+import { NOMS_CAMP } from "../roles";
+import type { VuePartie } from "../types";
+import { personnage } from "../village";
+import { Chat, titreChat } from "./Chat";
+import { RecapRoles } from "./RecapRoles";
 
-/** Panneau de droite : ma carte de rôle, puis le récapitulatif des rôles de la partie. */
+type Onglet = "chat" | "role";
+
+/** Colonne de droite : le chat sur toute la hauteur, et en second onglet mon rôle et les rôles en jeu. */
 export function PanneauDroit({ etat }: { etat: VuePartie }) {
-  const { moi } = etat;
+  const [onglet, setOnglet] = useState<Onglet>("chat");
+  // Dernier message lu : signale ce qui arrive pendant qu'on consulte son rôle.
+  const dernier = etat.journal.at(-1)?.numero ?? 0;
+  const [lu, setLu] = useState(dernier);
+  useEffect(() => { if (onglet === "chat") setLu(dernier); }, [onglet, dernier]);
+
+  const canal = etat.canalChat;
+
   return (
-    <aside className="panneau-droit">
-      <section className={"carte carte-role" + (moi.estVivant ? "" : " morte")}>
-        <div className="illustration" aria-hidden>{moi.role ? icone(moi.role) : "❔"}</div>
-        <h3>{moi.role ?? "Rôle secret"}</h3>
-        {moi.camp && <span className={`camp camp-${moi.camp}`}>Camp : {NOMS_CAMP[moi.camp]}</span>}
-        <p>{moi.descriptionRole ?? "Votre rôle vous sera révélé au lancement de la partie."}</p>
-        {!moi.estVivant && <p className="ruban-mort">Vous êtes mort</p>}
+    <aside className="lg-side">
+      <section className={"lg-chat-in" + (canal ? ` canal-${canal}` : "")}>
+        <div className="lg-onglets" role="tablist">
+          <button role="tab" aria-selected={onglet === "chat"} className="lg-onglet" onClick={() => setOnglet("chat")}>
+            {titreChat(canal)}
+            {onglet !== "chat" && dernier > lu && <span className="lg-non-lu" aria-label="Nouveaux messages" />}
+          </button>
+          <button role="tab" aria-selected={onglet === "role"} className="lg-onglet" onClick={() => setOnglet("role")}>
+            Mon rôle
+          </button>
+        </div>
+        {/* Le chat reste monté (caché) pour garder le message en cours de saisie. */}
+        <div className="lg-onglet-corps" hidden={onglet !== "chat"}>
+          <Chat etat={etat} />
+        </div>
+        {onglet === "role" && (
+          <div className="lg-onglet-corps lg-role">
+            <CarteRole etat={etat} />
+            <h3 className="lg-sous-titre">Rôles en jeu</h3>
+            <RecapRoles etat={etat} />
+          </div>
+        )}
       </section>
-      <RecapRoles etat={etat} />
     </aside>
   );
 }
 
-function RecapRoles({ etat }: { etat: VuePartie }) {
-  const definirComposition = useJeu((s) => s.definirComposition);
-  const enLobby = etat.phase === "Lobby";
-  const modifiable = etat.compositionModifiable;
-
-  /** Envoie la composition entière (un rôle par joueur) après avoir ajouté ou retiré un exemplaire. */
-  function modifier(roleId: RoleId, delta: number) {
-    const roles: RoleId[] = [];
-    for (const role of etat.composition) {
-      const nombre = Math.max(0, role.nombre + (role.id === roleId ? delta : 0));
-      for (let i = 0; i < nombre; i++) roles.push(role.id);
-    }
-    definirComposition(roles);
-  }
-
-  const total = etat.composition.reduce((somme, r) => somme + r.nombre, 0);
+function CarteRole({ etat }: { etat: VuePartie }) {
+  const { moi } = etat;
+  const monIndex = etat.joueurs.findIndex((j) => j.id === moi.id);
 
   return (
-    <section className="carte recap-roles">
-      <h3>
-        {enLobby ? "Composition" : "Rôles en jeu"}
-        {enLobby && <span className="discret"> · {total} rôle{total > 1 ? "s" : ""}{etat.compositionAutomatique ? " (auto)" : ""}</span>}
-        {modifiable && !etat.compositionAutomatique && (
-          <button className="bouton-discret" title="Revenir à la composition automatique" onClick={() => definirComposition(null)}>
-            Auto
-          </button>
-        )}
-      </h3>
-      <ul>
-        {etat.composition.map((role) => (
-          <LigneRole key={role.id} role={role} enLobby={enLobby} modifiable={modifiable} onModifier={modifier} />
-        ))}
-      </ul>
+    <section className={"carte-role" + (moi.estVivant ? "" : " morte")}>
+      <span className="carte-role-av" aria-hidden>
+        <img className="lg-msg-fig" src={personnage(Math.max(0, monIndex))} alt="" />
+      </span>
+      <div className="carte-role-texte">
+        <h2>{moi.role ?? "Rôle secret"}</h2>
+        {moi.camp && <span className={`camp camp-${moi.camp}`}>Camp : {NOMS_CAMP[moi.camp]}</span>}
+        {!moi.estVivant && <span className="ruban-mort">Vous êtes mort</span>}
+      </div>
+      {moi.descriptionRole && <p className="carte-role-desc">{moi.descriptionRole}</p>}
     </section>
-  );
-}
-
-interface LigneRoleProps {
-  role: VueRole;
-  enLobby: boolean;
-  modifiable: boolean;
-  onModifier: (roleId: RoleId, delta: number) => void;
-}
-
-function LigneRole({ role, enLobby, modifiable, onModifier }: LigneRoleProps) {
-  // En jeu : « Loup-Garou x2 », puis « x1 » quand l'un meurt, grisé quand il n'en reste plus.
-  const nombre = enLobby ? role.nombre : role.vivants;
-  const classes = ["ligne-role", `camp-${role.camp}`];
-  if (nombre === 0) classes.push("eteint");
-
-  return (
-    <li className={classes.join(" ")}>
-      <span className="ligne-role-icone">{icone(role.nom)}</span>
-      <span className="ligne-role-nom">{role.nom}</span>
-      <Infobulle titre={role.nom} texte={role.description} />
-      {modifiable ? (
-        <span className="compteur-role">
-          <button className="bouton-mini" disabled={role.nombre === 0} onClick={() => onModifier(role.id, -1)}>−</button>
-          <span className="nombre">{role.nombre}</span>
-          <button className="bouton-mini" onClick={() => onModifier(role.id, +1)}>+</button>
-        </span>
-      ) : (
-        <span className="nombre">x{nombre}</span>
-      )}
-    </li>
   );
 }
